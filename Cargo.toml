@@ -1,0 +1,12 @@
+[package]
+name = "cc"
+version = "0.1.0"
+authors = ["achille"]
+edition = "2018"
+
+[dependencies]
+nom = "4.1.1"
+lalrpop-util = "0.16.2"
+
+[build-dependencies]
+lalrpop = "0.16.2"
