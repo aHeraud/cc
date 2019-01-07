@@ -1,0 +1,383 @@
+use crate::lexer;
+use crate::lexer::Token;
+use crate::parser::ast::*;
+
+grammar<'input>;
+
+
+pub Constant: Constant = <c:IntLiteral> => Constant::Integer(c.to_string());
+
+// *********** //
+// Expressions //
+// *********** //
+
+pub PrimaryExpression: PrimaryExpression = { // TODO: string literals
+    Ident => PrimaryExpression::Identifier(<>.into()),
+    Constant => PrimaryExpression::Constant(<>),
+    "(" <e:Expression> ")" => PrimaryExpression::Parens(Box::new(e))
+};
+
+pub PostfixExpression: PostfixExpression = {
+    <p:PrimaryExpression> => vec![PostfixExpressionPart::PrimaryExpression(p)],
+    <v:PostfixExpression> "[" <e:Expression> "]" => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::ArrayAccess(Box::new(e)));
+        v
+    },
+    <v:PostfixExpression> "(" <a:ArgumentExpressionList?> ")" => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::ArgumentExpressionList(a.unwrap_or(vec![])));
+        v
+    },
+    <v:PostfixExpression> "." <i:Ident> => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::MemberAccess(i.into()));
+        v
+    },
+    <v:PostfixExpression> "->" <i:Ident> => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::PointerMemberAccess(i.into()));
+        v
+    },
+    <v:PostfixExpression> "++" => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::Increment);
+        v
+    },
+    <v:PostfixExpression> "--" => {
+        let mut v = v;
+        v.push(PostfixExpressionPart::Decrement);
+        v
+    }
+    // "(" <t:TypeName> ")" "{" InitializerList ","? "}" => (), // TODO
+};
+
+pub ArgumentExpressionList: ArgumentExpressionList = {
+    <a:AssignmentExpression> => vec![a],
+    <v:ArgumentExpressionList> "," <a:AssignmentExpression> => {
+        let mut v = v;
+        v.push(a);
+        v
+    }
+};
+
+pub UnaryExpression: UnaryExpression = {
+    <p:PostfixExpression> => UnaryExpression::PostfixExpression(p),
+    "++" <u:UnaryExpression> => UnaryExpression::Increment(Box::new(u)),
+    "--" <u:UnaryExpression> => UnaryExpression::Decrement(Box::new(u)),
+    <u:UnaryOperator> <c:CastExpression> => UnaryExpression::UnaryOperator((u, c)),
+    "sizeof" <u:UnaryExpression> => UnaryExpression::SizeOfExpr(Box::new(u)),
+    //"sizeof" "(" <t:TypeName> ")" => () //TODO
+}
+
+pub UnaryOperator: UnaryOperator = {
+    "&" => UnaryOperator::AddressOf,
+    "*" => UnaryOperator::Indirection,
+    "+" => UnaryOperator::Plus,
+    "-" => UnaryOperator::Minus,
+    "~" => UnaryOperator::BitwiseNot,
+    "!" => UnaryOperator::LogicalNot
+};
+
+pub CastExpression: CastExpression = {
+    <u:UnaryExpression> => CastExpression::UnaryExpression(Box::new(u)),
+    // "(" <t:TypeName> ")" <c:CastExpression> => CastExpression::Cast{ type_name: t, cast_expression: Box::new(e) } // TODO: what exactly is a type name
+};
+
+pub MultiplicativeExpression: MultiplicativeExpression = {
+    <c:CastExpression> => MultiplicativeExpression::CastExpression(Box::new(c)),
+    <m:MultiplicativeExpression> "*" <c:CastExpression> => MultiplicativeExpression::Mult((Box::new(m), Box::new(c))),
+    <m:MultiplicativeExpression> "/" <c:CastExpression> => MultiplicativeExpression::Div((Box::new(m), Box::new(c))),
+    <m:MultiplicativeExpression> "%" <c:CastExpression> => MultiplicativeExpression::Mod((Box::new(m), Box::new(c)))
+};
+
+pub AdditiveExpression: AdditiveExpression = {
+    <m:MultiplicativeExpression> => AdditiveExpression::MultiplicativeExpression(Box::new(m)),
+    <a:AdditiveExpression> "+" <m:MultiplicativeExpression> => AdditiveExpression::Add((Box::new(a), Box::new(m))),
+    <a:AdditiveExpression> "-" <m:MultiplicativeExpression> => AdditiveExpression::Sub((Box::new(a), Box::new(m)))
+};
+
+pub ShiftExpression: ShiftExpression = {
+    <a:AdditiveExpression> => ShiftExpression::AdditiveExpression(Box::new(a)),
+    <s:ShiftExpression> "<<" <a:AdditiveExpression> => ShiftExpression::Shl((Box::new(s), Box::new(a))),
+    <s:ShiftExpression> ">>" <a:AdditiveExpression> => ShiftExpression::Shr((Box::new(s), Box::new(a)))
+};
+
+pub RelationalExpression: RelationalExpression = {
+    <s:ShiftExpression> => RelationalExpression::ShiftExpression(Box::new(s)),
+    <r:RelationalExpression> "<" <s:ShiftExpression> => RelationalExpression::LessThan((Box::new(r), Box::new(s))),
+    <r:RelationalExpression> ">" <s:ShiftExpression> => RelationalExpression::GreaterThan((Box::new(r), Box::new(s))),
+    <r:RelationalExpression> "<=" <s:ShiftExpression> => RelationalExpression::LessThanOrEqualTo((Box::new(r), Box::new(s))),
+    <r:RelationalExpression> ">=" <s:ShiftExpression> => RelationalExpression::GreaterThanOrEqualTo((Box::new(r), Box::new(s))),
+};
+
+pub EqualityExpression: EqualityExpression = {
+    <r:RelationalExpression> => EqualityExpression::RelationalExpression(Box::new(r)),
+    <e:EqualityExpression> "==" <r:RelationalExpression> => EqualityExpression::Equals((Box::new(e), Box::new(r))),
+    <e:EqualityExpression> "!=" <r:RelationalExpression> => EqualityExpression::NotEquals((Box::new(e), Box::new(r)))
+};
+
+pub AndExpression: AndExpression = {
+    <e:EqualityExpression> => AndExpression::EqualityExpression(Box::new(e)),
+    <a:AndExpression> "&" <e:EqualityExpression> => AndExpression::And((Box::new(a), Box::new(e)))
+};
+
+pub XorExpression: XorExpression = {
+    AndExpression => XorExpression::AndExpression(Box::new(<>)),
+    <x:XorExpression> "^" <a:AndExpression> => XorExpression::Xor((Box::new(x), Box::new(a)))
+};
+
+pub OrExpression: OrExpression = {
+    XorExpression => OrExpression::XorExpression(Box::new(<>)),
+    <o:OrExpression> "|" <x:XorExpression> => OrExpression::Or((Box::new(o), Box::new(x)))
+};
+
+pub LogicalAndExpression: LogicalAndExpression = {
+    OrExpression => LogicalAndExpression::OrExpression(Box::new(<>)),
+    <a:LogicalAndExpression> "&&" <o:OrExpression> => LogicalAndExpression::LogicalAnd((Box::new(a), Box::new(o)))
+};
+
+pub LogicalOrExpression: LogicalOrExpression = {
+    LogicalAndExpression  => LogicalOrExpression::LogicalAndExpression(Box::new(<>)),
+    <o:LogicalOrExpression> "||" <a:LogicalAndExpression> => LogicalOrExpression::LogicalOr((Box::new(o), Box::new(a)))
+};
+
+pub ConditionalExpression: ConditionalExpression = {
+    LogicalOrExpression => ConditionalExpression::LogicalOrExpression(Box::new(<>)),
+    <o:LogicalOrExpression> "?" <e:Expression> ":" <c:ConditionalExpression> => {
+        ConditionalExpression::ConditionalExpression { 
+            condition: Box::new(o),
+            true_expr: Box::new(e),
+            false_expr: Box::new(c)
+        }
+    }
+}
+
+pub AssignmentExpression: AssignmentExpression = {
+    ConditionalExpression => AssignmentExpression::ConditionalExpression(Box::new(<>)),
+    <u:UnaryExpression> <op:AssignmentOperator> <e:AssignmentExpression> => {
+        AssignmentExpression::Assignment {
+            lhs: Box::new(u),
+            op: op,
+            rhs: Box::new(e)
+        }
+    }
+};
+
+pub AssignmentOperator: AssignmentOperator = {
+    "=" => AssignmentOperator::Eq,
+    "*=" => AssignmentOperator::MultEq,
+    "/=" => AssignmentOperator::DivEq,
+    "%=" => AssignmentOperator::ModEq,
+    "+=" => AssignmentOperator::PlusEq,
+    "-=" => AssignmentOperator::MinusEq,
+    "<<=" => AssignmentOperator::ShlEq,
+    ">>=" => AssignmentOperator::ShrEq,
+    "&=" => AssignmentOperator::AndEq,
+    "^=" => AssignmentOperator::XorEq,
+    "|=" => AssignmentOperator::OrEq
+};
+
+pub Expression: Expression = {
+    AssignmentExpression => vec![<>],
+    <e:Expression> "," <a:AssignmentExpression> => {
+        let mut v = e;
+        v.push(a);
+        v
+    }
+}
+
+// ********** //
+// Statements //
+// ********** //
+
+pub Statement: Statement = <s:JumpStatement> => Statement::Jump(s);
+
+pub JumpStatement: JumpStatement = "return" <e:Expression?> ";" => JumpStatement::Return(e.map(|v| Box::new(v)));
+
+pub BlockItem: BlockItem = <s:Statement> => BlockItem::Statement(s);
+
+pub CompoundStatement: CompoundStatement = "{" <b:BlockItem+> "}" => b;
+
+
+// Declarations
+
+
+StorageClassSpecifier: StorageClassSpecifier = {
+    "typedef" => StorageClassSpecifier::Typedef,
+    "extern" => StorageClassSpecifier::Extern,
+    "static" => StorageClassSpecifier::Static,
+    "auto" => StorageClassSpecifier::Auto,
+    "register" => StorageClassSpecifier::Register
+};
+
+TypeQualifier: TypeQualifier = {
+    "const" => TypeQualifier::Const,
+    "restrict" => TypeQualifier::Restrict,
+    "volatile" => TypeQualifier::Volatile
+};
+
+TypeSpecifier: TypeSpecifier = {
+    "void" => TypeSpecifier::Void,
+    "char" => TypeSpecifier::Char,
+    "short" => TypeSpecifier::Short,
+    "int" => TypeSpecifier::Int,
+    "long" => TypeSpecifier::Long,
+    "float" => TypeSpecifier::Float,
+    "double" => TypeSpecifier::Double,
+    "unsigned" => TypeSpecifier::Unsigned,
+    "signed" => TypeSpecifier::Signed
+};
+
+FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
+
+pub DeclarationSpecifier: DeclarationSpecifier = {
+    StorageClassSpecifier => DeclarationSpecifier::StorageClassSpecifier(<>),
+    TypeQualifier => DeclarationSpecifier::TypeQualifier(<>),
+    TypeSpecifier => DeclarationSpecifier::TypeSpecifier(<>),
+    FunctionSpecifier => DeclarationSpecifier::FunctionSpecifier(<>)
+};
+
+pub DeclarationSpecifiers: DeclarationSpecifiers = <d:DeclarationSpecifier+> => d;
+
+pub Declarator: Declarator = <d:DirectDeclarator> => Declarator { direct_declarator: d };
+
+//TODO: array declarators
+pub DirectDeclarator: DirectDeclarator = {
+    <i:Ident> => vec![DirectDeclaratorPart::Identifier(i.into())],
+    "(" <d:Declarator> ")" => vec![DirectDeclaratorPart::Parens(Box::new(d))],
+    <v:DirectDeclarator> "(" <p:ParameterTypeList> ")" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::ParameterTypeList(p));
+        v
+    },
+    <v:DirectDeclarator> "(" <l:IdentifierList> ")" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::IdentifierList(l));
+        v
+    }
+};
+
+pub IdentifierList: IdentifierList = {
+    <v:IdentifierList> "," <i:Ident> => {
+        let mut v = v;
+        v.push(i.into());
+        v
+    },
+    <i:Ident> => vec![i.into()]
+};
+
+pub ParameterTypeList: ParameterTypeList = {
+    ParameterList => ParameterTypeList::new(<>, false),
+    <p:ParameterList> "," "..." => ParameterTypeList::new(<>, true)
+};
+
+pub ParameterList: ParameterList = {
+    <list:ParameterList> "," <dec:ParameterDeclaration> => {
+        let mut list = list;
+        list.push(dec);
+        list
+    },
+    ParameterDeclaration => vec![<>]
+};
+
+pub ParameterDeclaration: ParameterDeclaration = {
+    <s:DeclarationSpecifiers> <d:Declarator> => ParameterDeclaration { declaration_specifier_list: s, declarator: ParameterDeclarator::Declarator(Box::new(d)) },
+    <s: DeclarationSpecifiers> <d:AbstractDeclarator?> => ParameterDeclaration { declaration_specifier_list: s, declarator:  ParameterDeclarator::AbstractDeclarator(d.map(|v| Box::new(v))) }
+};
+
+//TODO: abstract declarator pointers
+pub AbstractDeclarator: AbstractDeclarator = DirectAbstractDeclarator => AbstractDeclarator::new(<>);
+
+pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
+    "(" <a:AbstractDeclarator> ")" => vec![DirectAbstractDeclaratorPart::Parens(Box::new(a))],
+    <v: DirectAbstractDeclarator?> "[" "*" "]" => {
+        let mut v = v.unwrap_or(vec![]);
+        v.push(DirectAbstractDeclaratorPart::VLA);
+        v
+    },
+    <v:DirectAbstractDeclarator?> "(" <p:ParameterTypeList?> ")" => {
+        let mut v = v.unwrap_or(vec![]);
+        v.push(DirectAbstractDeclaratorPart::ParameterTypeList(
+            Box::new(p.unwrap_or(ParameterTypeList::new(vec![], false)))));
+        v
+    }
+};
+
+extern { // uses a custom lexer
+    type Location = usize;
+    type Error = lexer::InvalidToken;
+
+    enum Token<'input> {
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+        "[" => Token::LBracket,
+        "]" => Token::RBracket,
+        ";" => Token::Semicolon,
+        "," => Token::Comma,
+        "." => Token::Dot,
+        "..." => Token::Ellipsis,
+        "*" => Token::Star,
+        "->" => Token::Arrow,
+        "++" => Token::Increment,
+        "--" => Token::Decrement,
+        "&" => Token::Ampersand,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "~" => Token::Tilde,
+        "!" => Token::Exclamation,
+        "/" => Token::Slash,
+        "%" => Token::Modulo,
+        "^" => Token::Caret,
+        "|" => Token::VerticalBar,
+        ":" => Token::Colon,
+        "?" => Token::Question,
+        "<<" => Token::Shl,
+        ">>" => Token::Shr,
+        "<" => Token::LessThan,
+        ">" => Token::GreaterThan,
+        "<=" => Token::LessThanOrEqualTo,
+        ">=" => Token::GreaterThanOrEqualTo,
+        "==" => Token::Equality,
+        "!=" => Token::NotEqual,
+        "&&" => Token::AndAnd,
+        "||" => Token::OrOr,
+        "=" => Token::Equal,
+        "*=" => Token::MultEq,
+        "/=" => Token::DivEq,
+        "%=" => Token::ModEq,
+        "+=" => Token::PlusEq,
+        "-=" => Token::MinusEq,
+        "<<=" => Token::ShlEq,
+        ">>=" => Token::ShrEq,
+        "&=" => Token::AndEq,
+        "^=" => Token::XorEq,
+        "|=" => Token::OrEq,
+        "return" => Token::Return,
+        "inline" => Token::Inline,
+        "typedef" => Token::Typedef,
+        "extern" => Token::Extern,
+        "static" => Token::Static,
+        "auto" => Token::Auto,
+        "register" => Token::Register,
+        "const" => Token::Const,
+        "restrict" => Token::Restrict,
+        "volatile" => Token::Volatile,
+        "void" => Token::Void,
+        "char" => Token::Char,
+        "short" => Token::Short,
+        "int" => Token::Int,
+        "long" => Token::Long,
+        "float" => Token::Float,
+        "double" => Token::Double,
+        "signed" => Token::Signed,
+        "unsigned" => Token::Unsigned,
+        "sizeof" => Token::SizeOf,
+        Ident => Token::Identifier(<&'input str>),
+        IntLiteral => Token::IntLiteral(<&'input str>),
+        FloatLiteral => Token::FloatLiteral(<&'input str>),
+        StringLiteral => Token::StringLiteral(<&'input str>)
+    }
+}
