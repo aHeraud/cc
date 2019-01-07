@@ -9,10 +9,46 @@ pub enum Token<'a> {
     RBracket,
     Semicolon,
     Comma,
-    Star, /* can be multiplication or a pointer depending on context */
-    Ellipsis, /* "...", used to indicate that a function can take a variable number of parameters */
-    Dot, /* can be struct member access, or can be 3 dots in a row for a variadic function declarator */
-    Arrow, /* "->" operator for member access */
+    Star,           /* can be multiplication or a pointer depending on context */
+    Ellipsis,       /* "...", used to indicate that a function can take a variable number of parameters */
+    Dot,            /* can be struct member access, or can be 3 dots in a row for a variadic function declarator */
+    Arrow,          /* "->" operator for member access */
+    Increment,      /* ++ */
+    Decrement,      /* -- */
+    Ampersand,      /* & */
+    Plus,
+    Minus,
+    Tilde,
+    Exclamation,
+    Slash,
+    Colon,
+    Question,       /* ? */
+    Modulo,         /* % */
+    Shl,            /* << */
+    Shr,            /* >> */
+    LessThan,       /* < */
+    GreaterThan,    /* > */
+    LessThanOrEqualTo,      /* <= */
+    GreaterThanOrEqualTo,   /* >= */
+    Equality,       /* == */
+    NotEqual,       /* != */
+    Caret,          /* ^ */
+    VerticalBar,    /* | */
+    AndAnd,         /* && */
+    OrOr,           /* || */
+
+    /* Assignment expressions */
+    Equal,          /* = */
+    MultEq,         /* *= */
+    DivEq,          /* /= */
+    ModEq,          /* %= */
+    PlusEq,         /* += */
+    MinusEq,        /* -= */
+    ShlEq,          /* <<= */
+    ShrEq,          /* >>= */
+    AndEq,          /* &= */
+    XorEq,          /* ^= */
+    OrEq,           /* |= */
 
     /* Keywords */
     Return,
@@ -34,6 +70,7 @@ pub enum Token<'a> {
     Double,
     Signed,
     Unsigned,
+    SizeOf,
     //_Bool,
     //_Complex,
 

@@ -89,14 +89,30 @@ named!(token(CompleteStr) -> Token, alt!(
 ));
 
 named!(punctuation(CompleteStr) -> Token, alt!(
-    l_paren | r_paren | l_brace | r_brace | l_bracket | r_bracket | semicolon |
-    comma | ellipsis | dot | star | arrow
+    alt!( /* 3 char long tokens */
+        shl_eq | shr_eq
+    ) |
+    alt!( /* 2 char long tokens */
+        equality | not_equal | less_than_or_equal_to |
+        greater_than_or_equal_to | increment| decrement |
+        shl | shr | and_and | or_or | mult_eq | div_eq |
+        mod_eq | plus_eq | minus_eq | and_eq | xor_eq |
+        or_eq
+    ) |
+    alt!( /* single char tokens */
+        l_paren | r_paren | l_brace | r_brace | l_bracket |
+        r_bracket | semicolon | comma | ellipsis | dot |
+        star | arrow | ampersand | plus | minus | tilde |
+        exclamation | slash | modulo | less_than | greater_than |
+        caret | vertical_bar | colon | question_mark | equal
+    )
 ));
 
 named!(keyword(CompleteStr) -> Token, alt!(
     _return | inline | typedef | _extern | _static | auto |
     register | _const | restrict | volatile | void | char |
-    short | int | long | float | double | signed | unsigned
+    short | int | long | float | double | signed | unsigned |
+    sizeof
 ));
 
 /* punctuation */
@@ -112,6 +128,42 @@ recognize_tag!(ellipsis, "...", Token::Ellipsis);
 recognize_char!(dot, '.', Token::Dot);
 recognize_char!(star, '*', Token::Star);
 recognize_tag!(arrow, "->", Token::Arrow);
+recognize_tag!(increment, "++", Token::Increment);
+recognize_tag!(decrement, "--", Token::Decrement);
+recognize_char!(ampersand, '&', Token::Ampersand);
+recognize_char!(plus, '+', Token::Plus);
+recognize_char!(minus, '-', Token::Minus);
+recognize_char!(tilde, '~', Token::Tilde);
+recognize_char!(exclamation, '!', Token::Exclamation);
+recognize_char!(slash, '/', Token::Slash);
+recognize_char!(modulo, '%', Token::Modulo);
+recognize_char!(caret, '^', Token::Caret);
+recognize_char!(vertical_bar, '|', Token::VerticalBar);
+recognize_char!(colon, ':', Token::Colon);
+recognize_char!(question_mark, '?', Token::Question);
+recognize_tag!(shl, "<<", Token::Shl);
+recognize_tag!(shr, ">>", Token::Shr);
+recognize_char!(less_than, '<', Token::LessThan);
+recognize_char!(greater_than, '>', Token::GreaterThan);
+recognize_tag!(less_than_or_equal_to, "<=", Token::LessThanOrEqualTo);
+recognize_tag!(greater_than_or_equal_to, ">=", Token::GreaterThanOrEqualTo);
+recognize_tag!(equality, "==", Token::Equality);
+recognize_tag!(not_equal, "!=", Token::NotEqual);
+recognize_tag!(and_and, "&&", Token::AndAnd);
+recognize_tag!(or_or, "||", Token::OrOr);
+
+/* assignment operators */
+recognize_char!(equal, '=', Token::Equal);
+recognize_tag!(mult_eq, "*=", Token::MultEq);
+recognize_tag!(div_eq, "/=", Token::DivEq);
+recognize_tag!(mod_eq, "%=", Token::ModEq);
+recognize_tag!(plus_eq, "+=", Token::PlusEq);
+recognize_tag!(minus_eq, "-=", Token::MinusEq);
+recognize_tag!(shl_eq, "<<=", Token::ShlEq);
+recognize_tag!(shr_eq, ">>=", Token::ShrEq);
+recognize_tag!(and_eq, "&=", Token::AndEq);
+recognize_tag!(xor_eq, "^=", Token::XorEq);
+recognize_tag!(or_eq, "|=", Token::OrEq);
 
 recognize_tag!(_return, "return", Token::Return);
 
@@ -141,6 +193,9 @@ recognize_tag!(double, "double", Token::Double);
 recognize_tag!(signed, "signed", Token::Signed);
 recognize_tag!(unsigned, "unsigned", Token::Unsigned);
 
+// misc
+recognize_tag!(sizeof, "sizeof", Token::SizeOf);
+
 /* the identifier can not be a reserved word */
 named!(ident(CompleteStr) -> Token, do_parse!(
     peek!(alt!(nom::alpha | tag!("_"))) >>
@@ -149,9 +204,9 @@ named!(ident(CompleteStr) -> Token, do_parse!(
 ));
 
 fn is_keyword<'a>(s: &'a str) -> bool {
-    const KEYWORDS: [&'static str; 19] = ["return", "inline", "typedef", "extern", "static", "auto",
+    const KEYWORDS: [&'static str; 20] = ["return", "inline", "typedef", "extern", "static", "auto",
         "register", "const", "restrict", "volatile", "void", "char", "short", "int", "long", "float",
-        "double", "signed", "unsigned"];
+        "double", "signed", "unsigned", "sizeof"];
     KEYWORDS.iter().any(|e| e == &s)
 }
 

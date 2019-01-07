@@ -27,6 +27,39 @@ lex_token_test!(star, "*", Token::Star);
 lex_token_test!(dot, ".", Token::Dot);
 lex_token_test!(ellipsis, "...", Token::Ellipsis);
 lex_token_test!(arrow, "->", Token::Arrow);
+lex_token_test!(increment, "++", Token::Increment);
+lex_token_test!(decrement, "--", Token::Decrement);
+lex_token_test!(ampersand, "&", Token::Ampersand);
+lex_token_test!(plus, "+", Token::Plus);
+lex_token_test!(minus, "-", Token::Minus);
+lex_token_test!(tilde, "~", Token::Tilde);
+lex_token_test!(exclamation, "!", Token::Exclamation);
+lex_token_test!(slash, "/", Token::Slash);
+lex_token_test!(modulo, "%", Token::Modulo);
+lex_token_test!(caret, "^", Token::Caret);
+lex_token_test!(vertical_bar, "|", Token::VerticalBar);
+lex_token_test!(colon, ":", Token::Colon);
+lex_token_test!(question, "?", Token::Question);
+lex_token_test!(shl, "<<", Token::Shl);
+lex_token_test!(shr, ">>", Token::Shr);
+lex_token_test!(less_than, "<", Token::LessThan);
+lex_token_test!(greater_than, ">", Token::GreaterThan);
+lex_token_test!(less_than_or_equal_to, "<=", Token::LessThanOrEqualTo);
+lex_token_test!(greater_than_or_equal_to, ">=", Token::GreaterThanOrEqualTo);
+lex_token_test!(equality, "==", Token::Equality);
+lex_token_test!(not_equal, "!=", Token::NotEqual);
+lex_token_test!(and_and, "&&", Token::AndAnd);
+lex_token_test!(or_or, "||", Token::OrOr);
+lex_token_test!(equal, "=", Token::Equal);
+lex_token_test!(mult_eq, "*=", Token::MultEq);
+lex_token_test!(div_eq, "/=", Token::DivEq);
+lex_token_test!(mod_eq, "%=", Token::ModEq);
+lex_token_test!(plus_eq, "+=", Token::PlusEq);
+lex_token_test!(minus_eq, "-=", Token::MinusEq);
+lex_token_test!(shl_eq, "<<=", Token::ShlEq);
+lex_token_test!(shr_eq, ">>=", Token::ShrEq);
+lex_token_test!(and_eq, "&=", Token::AndEq);
+lex_token_test!(or_eq, "|=", Token::OrEq);
 
 // keywords
 lex_token_test!(_return, "return", Token::Return);
@@ -48,6 +81,7 @@ lex_token_test!(float, "float", Token::Float);
 lex_token_test!(double, "double", Token::Double);
 lex_token_test!(signed, "signed", Token::Signed);
 lex_token_test!(unsigned, "unsigned", Token::Unsigned);
+lex_token_test!(sizeof, "sizeof", Token::SizeOf);
 
 // identifiers
 lex_token_test!(ident1, "a", Token::Identifier("a"));
