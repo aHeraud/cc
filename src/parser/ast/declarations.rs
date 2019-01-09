@@ -1,11 +1,26 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FunctionDefinition {
+pub struct Declaration {
     pub declaration_specifiers: DeclarationSpecifiers,
+    pub init_declarator_list: Option<InitDeclaratorList>
+}
+
+impl Declaration {
+    pub fn new(declaration_specifiers: DeclarationSpecifiers, init_declarator_list: Option<InitDeclaratorList>) -> Declaration {
+        Declaration {
+            declaration_specifiers,
+            init_declarator_list
+        }
+    }
+}
+
+pub type InitDeclaratorList = Vec<InitDeclarator>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitDeclarator {
     pub declarator: Declarator,
-    //pub declaration_list: DeclarationList,
-    pub compound_statement: CompoundStatement
+    pub initializer: Option<Initializer>
 }
 
 //#[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,11 +36,12 @@ pub struct Declarator {
 
 pub type DirectDeclarator = Vec<DirectDeclaratorPart>;
 
-// TODO: figure out array declarators
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DirectDeclaratorPart {
     Identifier(String),
     Parens(Box<Declarator>),
+    Array(Option<AssignmentExpression>), /* discards static keyword and type qualifier list preceeding the optional assignment expression */
+    VLA, /* [*] */
     ParameterTypeList(ParameterTypeList),
     IdentifierList(IdentifierList)
 }
@@ -71,7 +87,69 @@ pub enum TypeSpecifier {
     Float,
     Double,
     Unsigned,
-    Signed
+    Signed,
+    StructOrUnionSpecifier(StructOrUnionSpecifier),
+    EnumSpecifier(EnumSpecifier),
+    Typedef(String)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructOrUnionSpecifier {
+    Partial { kind: StructOrUnion, identifier: String },
+    Complete { kind: StructOrUnion, identifier: Option<String>, declaration_list: StructDeclarationList }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructOrUnion {
+    Struct,
+    Union
+}
+
+pub type StructDeclarationList = Vec<StructDeclaration>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructDeclaration {
+    pub specification_qualifier_list: SpecifierQualifierList,
+    pub struct_declaration_list: StructDeclaratorList
+}
+
+impl StructDeclaration {
+    pub fn new(specification_qualifier_list: SpecifierQualifierList, struct_declaration_list: StructDeclaratorList) -> StructDeclaration {
+        StructDeclaration {
+            specification_qualifier_list,
+            struct_declaration_list
+        }
+    }
+}
+
+pub type SpecifierQualifierList = Vec<SpecifierQualifier>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpecifierQualifier {
+    TypeSpecifier(TypeSpecifier),
+    TypeQualifier(TypeQualifier)
+}
+
+pub type StructDeclaratorList = Vec<StructDeclarator>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructDeclarator {
+    Field(Declarator),
+    BitField(Option<Declarator>, ConstantExpression)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EnumSpecifier {
+    Complete { identifier: Option<String>, enumerator_list: EnumeratorList },
+    Partial { identifier: String }
+}
+
+pub type EnumeratorList = Vec<Enumerator>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Enumerator {
+    pub identifier: String,
+    pub value: Option<ConstantExpression>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,19 +195,32 @@ pub type DirectAbstractDeclarator = Vec<DirectAbstractDeclaratorPart>;
 
 pub type IdentifierList = Vec<String>;
 
-// TODO: array
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DirectAbstractDeclaratorPart {
     Parens(Box<AbstractDeclarator>),
-    // Arrray(Option<AssignmentExpression>)  // assignment expression should be an integer here?
+    Array(Option<AssignmentExpression>), // type qualifiers appearing before the assignment expression are discarded
     VLA,  // this has the form of "[*]"
     ParameterTypeList(Box<ParameterTypeList>)
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq)]
-// pub enum IntType {
-//     Char,
-//     Short,
-//     Int,
-//     Long
-// }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Initializer {
+    AssignmentExpression(AssignmentExpression),
+    InitializerList(InitializerList)
+}
+
+pub type InitializerList = Vec<InitializerListItem>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InitializerListItem {
+    pub designator: Option<DesignatorList>,
+    pub initializer: Box<Initializer>
+}
+
+pub type DesignatorList = Vec<Designator>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Designator {
+    Index(ConstantExpression),
+    Field(String)
+}

@@ -152,6 +152,9 @@ pub enum AssignmentOperator {
     OrEq // |=
 }
 
+// an expression can consist of multiple assignment expressions seperated
+// by commas. the value of the expression will be the last element of the list.
 pub type Expression = Vec<AssignmentExpression>;
 
-pub type ConstantExpression = ConditionalExpression;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstantExpression(pub ConditionalExpression);

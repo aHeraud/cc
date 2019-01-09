@@ -112,7 +112,7 @@ named!(keyword(CompleteStr) -> Token, alt!(
     _return | inline | typedef | _extern | _static | auto |
     register | _const | restrict | volatile | void | char |
     short | int | long | float | double | signed | unsigned |
-    sizeof
+    sizeof | _struct | _union | _enum
 ));
 
 /* punctuation */
@@ -182,6 +182,12 @@ recognize_tag!(_const, "const", Token::Const);
 recognize_tag!(restrict, "restrict", Token::Restrict);
 recognize_tag!(volatile, "volatile", Token::Volatile);
 
+/* struct or union */
+recognize_tag!(_struct, "struct", Token::Struct);
+recognize_tag!(_union, "union", Token::Union);
+
+recognize_tag!(_enum, "enum", Token::Enum);
+
 /* type specifier */
 recognize_tag!(void, "void", Token::Void);
 recognize_tag!(char, "char", Token::Char);
@@ -204,9 +210,9 @@ named!(ident(CompleteStr) -> Token, do_parse!(
 ));
 
 fn is_keyword<'a>(s: &'a str) -> bool {
-    const KEYWORDS: [&'static str; 20] = ["return", "inline", "typedef", "extern", "static", "auto",
+    const KEYWORDS: [&'static str; 23] = ["return", "inline", "typedef", "extern", "static", "auto",
         "register", "const", "restrict", "volatile", "void", "char", "short", "int", "long", "float",
-        "double", "signed", "unsigned", "sizeof"];
+        "double", "signed", "unsigned", "sizeof", "struct", "union", "enum"];
     KEYWORDS.iter().any(|e| e == &s)
 }
 

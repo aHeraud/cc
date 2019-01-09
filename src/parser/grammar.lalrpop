@@ -4,7 +4,6 @@ use crate::parser::ast::*;
 
 grammar<'input>;
 
-
 pub Constant: Constant = <c:IntLiteral> => Constant::Integer(c.to_string());
 
 // *********** //
@@ -187,6 +186,8 @@ pub Expression: Expression = {
     }
 }
 
+pub ConstantExpression: ConstantExpression = <c:ConditionalExpression> => ConstantExpression(c);
+
 // ********** //
 // Statements //
 // ********** //
@@ -200,8 +201,29 @@ pub BlockItem: BlockItem = <s:Statement> => BlockItem::Statement(s);
 pub CompoundStatement: CompoundStatement = "{" <b:BlockItem+> "}" => b;
 
 
-// Declarations
+// ************ //
+// Declarations //
+// ************ //
 
+pub Declaration: Declaration = {
+    <specifiers: DeclarationSpecifiers> <declarator_list:InitDeclaratorList?> ";" => {
+        Declaration::new(specifiers, declarator_list)
+    }
+};
+
+pub InitDeclaratorList: InitDeclaratorList = {
+    <v:InitDeclaratorList> "," <d:InitDeclarator> => {
+        let mut v = v;
+        v.push(d);
+        v
+    },
+    InitDeclarator => vec![<>]
+};
+
+pub InitDeclarator: InitDeclarator = {
+    <d:Declarator> => InitDeclarator { declarator: d, initializer: None },
+    <d:Declarator> "=" <i:Initializer> => InitDeclarator { declarator: d, initializer: Some(i) }
+};
 
 StorageClassSpecifier: StorageClassSpecifier = {
     "typedef" => StorageClassSpecifier::Typedef,
@@ -226,7 +248,9 @@ TypeSpecifier: TypeSpecifier = {
     "float" => TypeSpecifier::Float,
     "double" => TypeSpecifier::Double,
     "unsigned" => TypeSpecifier::Unsigned,
-    "signed" => TypeSpecifier::Signed
+    "signed" => TypeSpecifier::Signed,
+    StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
+    EnumSpecifier => TypeSpecifier::EnumSpecifier(<>)
 };
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
@@ -240,12 +264,89 @@ pub DeclarationSpecifier: DeclarationSpecifier = {
 
 pub DeclarationSpecifiers: DeclarationSpecifiers = <d:DeclarationSpecifier+> => d;
 
+pub StructOrUnionSpecifier: StructOrUnionSpecifier = {
+    <s:StructOrUnion> <i:Ident?> "{" <decl:StructDeclarationList> "}" => StructOrUnionSpecifier::Complete { 
+        kind: s, identifier: i.map(|s| s.into()), declaration_list: decl
+    },
+    <s:StructOrUnion> <i:Ident> => StructOrUnionSpecifier::Partial {
+        kind: s, identifier: i.into()
+    }
+};
+
+pub StructOrUnion: StructOrUnion = {
+    "struct" => StructOrUnion::Struct,
+    "union" => StructOrUnion::Union
+};
+
+pub SpecifierQualifierList: SpecifierQualifierList = <e:SpecifierQualifier+> => e;
+
+SpecifierQualifier: SpecifierQualifier = {
+    <t:TypeSpecifier> => SpecifierQualifier::TypeSpecifier(t),
+    <q:TypeQualifier> => SpecifierQualifier::TypeQualifier(q)
+};
+
+pub StructDeclarationList: StructDeclarationList = <l:StructDeclaration+> => l;
+
+pub StructDeclaration: StructDeclaration = <sp:SpecifierQualifierList> <sd: StructDeclaratorList> ";" => StructDeclaration::new(sp, sd);
+
+pub StructDeclaratorList: StructDeclaratorList = {
+    <v:StructDeclaratorList> "," <s:StructDeclarator> => {
+        let mut v = v;
+        v.push(s);
+        v
+    },
+    StructDeclarator => vec![<>]
+};
+
+pub StructDeclarator: StructDeclarator = {
+    <d:Declarator> => StructDeclarator::Field(d),
+    <d:Declarator?> ":" <c:ConstantExpression> => StructDeclarator::BitField(d, c)
+};
+
+pub EnumSpecifier: EnumSpecifier = {
+    "enum" <i:Ident?> "{" <l:EnumeratorList> ","? "}" => EnumSpecifier::Complete{ identifier: i.map(|v| v.into()), enumerator_list: l },
+    "enum" <i:Ident> => EnumSpecifier::Partial{ identifier: i.into() }
+};
+
+pub EnumeratorList: EnumeratorList = {
+    <v:EnumeratorList> "," <e:Enumerator> => {
+        let mut v = v;
+        v.push(e);
+        v
+    },
+    <e:Enumerator> => vec![e]
+};
+
+pub Enumerator: Enumerator = {
+    <i:Ident> => Enumerator { identifier: i.into(), value: None },
+    <i:Ident> "=" <c:ConstantExpression> => Enumerator { identifier: i.into(), value: Some(c) }
+};
+
 pub Declarator: Declarator = <d:DirectDeclarator> => Declarator { direct_declarator: d };
 
-//TODO: array declarators
 pub DirectDeclarator: DirectDeclarator = {
     <i:Ident> => vec![DirectDeclaratorPart::Identifier(i.into())],
     "(" <d:Declarator> ")" => vec![DirectDeclaratorPart::Parens(Box::new(d))],
+    <v:DirectDeclarator> "[" <_q:TypeQualifier+?> <expr:AssignmentExpression?> "]" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::Array(expr));
+        v
+    },
+    <v:DirectDeclarator> "[" "static" <_q:TypeQualifier+?> <expr:AssignmentExpression> "]" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::Array(Some(expr)));
+        v
+    },
+    <v:DirectDeclarator> "[" <_q:TypeQualifier+> "static" <expr:AssignmentExpression> "]" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::Array(Some(expr)));
+        v
+    },
+    <v:DirectDeclarator> "[" "*" "]" => {
+        let mut v = v;
+        v.push(DirectDeclaratorPart::VLA);
+        v
+    },
     <v:DirectDeclarator> "(" <p:ParameterTypeList> ")" => {
         let mut v = v;
         v.push(DirectDeclaratorPart::ParameterTypeList(p));
@@ -291,7 +392,12 @@ pub AbstractDeclarator: AbstractDeclarator = DirectAbstractDeclarator => Abstrac
 
 pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
     "(" <a:AbstractDeclarator> ")" => vec![DirectAbstractDeclaratorPart::Parens(Box::new(a))],
-    <v: DirectAbstractDeclarator?> "[" "*" "]" => {
+    <v:DirectAbstractDeclarator?> "[" <expr:AssignmentExpression?> "]" => {
+        let mut v = v.unwrap_or(vec![]);
+        v.push(DirectAbstractDeclaratorPart::Array(expr));
+        v
+    },
+    <v:DirectAbstractDeclarator?> "[" "*" "]" => {
         let mut v = v.unwrap_or(vec![]);
         v.push(DirectAbstractDeclaratorPart::VLA);
         v
@@ -302,6 +408,35 @@ pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
             Box::new(p.unwrap_or(ParameterTypeList::new(vec![], false)))));
         v
     }
+};
+
+pub Initializer: Initializer = {
+    AssignmentExpression => Initializer::AssignmentExpression(<>),
+    "{" <l:InitializerList> ","? "}" => Initializer::InitializerList(l)
+};
+
+pub InitializerList: InitializerList = {
+    <v:InitializerList> "," <i:InitializerListItem> => {
+        let mut v = v;
+        v.push(i);
+        v
+    },
+    InitializerListItem => vec![]
+};
+
+pub InitializerListItem: InitializerListItem = {
+    <d:Designation?> <i:Initializer> => InitializerListItem { designator: d, initializer: Box::new(i) }
+};
+
+pub Designation: DesignatorList = {
+    <d:DesignatorList> "=" => d
+};
+
+pub DesignatorList: DesignatorList = <d:Designator+> => d;
+
+pub Designator: Designator = {
+    "[" <c:ConstantExpression> "]" => Designator::Index(c),
+    "." <i:Ident> => Designator::Field(i.into())
 };
 
 extern { // uses a custom lexer
@@ -365,6 +500,9 @@ extern { // uses a custom lexer
         "const" => Token::Const,
         "restrict" => Token::Restrict,
         "volatile" => Token::Volatile,
+        "struct" => Token::Struct,
+        "union" => Token::Union,
+        "enum" => Token::Enum,
         "void" => Token::Void,
         "char" => Token::Char,
         "short" => Token::Short,
