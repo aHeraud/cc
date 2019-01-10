@@ -1,4 +1,5 @@
 use std::ffi::OsString;
+use std::collections::HashSet;
 use nom::types::CompleteStr;
 
 mod tokens;
@@ -9,6 +10,17 @@ mod tests;
 
 pub use self::error::InvalidToken;
 pub use self::tokens::Token;
+
+lazy_static! {
+    static ref KEYWORDS: HashSet<&'static str> = {
+        ["goto", "continue", "break", "return", "inline", "typedef",
+        "extern", "static", "auto", "register", "const", "restrict",
+        "volatile", "void", "char", "short", "int", "long", "float",
+        "double", "signed", "unsigned", "sizeof", "struct", "union",
+        "enum", "switch", "else", "case", "default", "while", "for",
+        "do", "if"].iter().cloned().collect()
+    };
+}
 
 pub type Spanned<Token, Loc, Error> = Result<(Loc, Token, Loc), Error>;
 
@@ -109,10 +121,23 @@ named!(punctuation(CompleteStr) -> Token, alt!(
 ));
 
 named!(keyword(CompleteStr) -> Token, alt!(
-    _return | inline | typedef | _extern | _static | auto |
-    register | _const | restrict | volatile | void | char |
-    short | int | long | float | double | signed | unsigned |
-    sizeof | _struct | _union | _enum
+    jump_keywords | inline | typedef |
+    _extern | _static | auto | register | _const | restrict |
+    volatile | sizeof | type_keywords |
+    _if | _else | _switch | case | default | loop_keywords
+));
+
+named!(type_keywords(CompleteStr) -> Token, alt!(
+    void | char | short | int | long | float | double |
+    signed | unsigned | _struct | _union | _enum
+));
+
+named!(jump_keywords(CompleteStr) -> Token, alt!(
+    _continue | _break | _goto | _return
+));
+
+named!(loop_keywords(CompleteStr) -> Token, alt!(
+    _while | _for | _do
 ));
 
 /* punctuation */
@@ -165,7 +190,23 @@ recognize_tag!(and_eq, "&=", Token::AndEq);
 recognize_tag!(xor_eq, "^=", Token::XorEq);
 recognize_tag!(or_eq, "|=", Token::OrEq);
 
+/* jump keywords */
+recognize_tag!(_goto, "goto", Token::Goto);
+recognize_tag!(_continue, "continue", Token::Continue);
+recognize_tag!(_break, "break", Token::Break);
 recognize_tag!(_return, "return", Token::Return);
+
+recognize_tag!(_if, "if", Token::If);
+recognize_tag!(_else, "else", Token::Else);
+recognize_tag!(_switch, "switch", Token::Switch);
+
+recognize_tag!(case, "case", Token::Case);
+recognize_tag!(default, "default", Token::Default);
+
+/* loop keywords */
+recognize_tag!(_while, "while", Token::While);
+recognize_tag!(_do, "do", Token::Do);
+recognize_tag!(_for, "for", Token::For);
 
 /* function specifier */
 recognize_tag!(inline, "inline", Token::Inline);
@@ -210,10 +251,7 @@ named!(ident(CompleteStr) -> Token, do_parse!(
 ));
 
 fn is_keyword<'a>(s: &'a str) -> bool {
-    const KEYWORDS: [&'static str; 23] = ["return", "inline", "typedef", "extern", "static", "auto",
-        "register", "const", "restrict", "volatile", "void", "char", "short", "int", "long", "float",
-        "double", "signed", "unsigned", "sizeof", "struct", "union", "enum"];
-    KEYWORDS.iter().any(|e| e == &s)
+    KEYWORDS.contains(s)
 }
 
 named!(integer_literal(CompleteStr) -> Token, alt!(

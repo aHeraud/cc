@@ -62,7 +62,17 @@ lex_token_test!(and_eq, "&=", Token::AndEq);
 lex_token_test!(or_eq, "|=", Token::OrEq);
 
 // keywords
+lex_token_test!(_goto, "goto", Token::Goto);
+lex_token_test!(_continue, "continue", Token::Continue);
+lex_token_test!(_break, "break", Token::Break);
 lex_token_test!(_return, "return", Token::Return);
+lex_token_test!(_if, "if", Token::If);
+lex_token_test!(_switch, "switch", Token::Switch);
+lex_token_test!(case, "case", Token::Case);
+lex_token_test!(default, "default", Token::Default);
+lex_token_test!(_while, "while", Token::While);
+lex_token_test!(_do, "do", Token::Do);
+lex_token_test!(_for, "for", Token::For);
 lex_token_test!(inline, "inline", Token::Inline);
 lex_token_test!(typedef, "typedef", Token::Typedef);
 lex_token_test!(_extern, "extern", Token::Extern);

@@ -51,7 +51,18 @@ pub enum Token<'a> {
     OrEq,           /* |= */
 
     /* Keywords */
+    Goto,
+    Continue,
+    Break,
     Return,
+    If,
+    Else,
+    Switch,
+    Case,
+    Default,
+    While,
+    Do,
+    For,
     Inline,
     Typedef,
     Extern,

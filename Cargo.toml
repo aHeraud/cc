@@ -5,6 +5,7 @@ authors = ["achille"]
 edition = "2018"
 
 [dependencies]
+lazy_static = "1.2.0"
 nom = "4.1.1"
 lalrpop-util = "0.16.2"
 
