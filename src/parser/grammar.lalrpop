@@ -192,11 +192,50 @@ pub ConstantExpression: ConstantExpression = <c:ConditionalExpression> => Consta
 // Statements //
 // ********** //
 
-pub Statement: Statement = <s:JumpStatement> => Statement::Jump(s);
+pub Statement: Statement = {
+    <s:LabeledStatement> => Statement::Labeled(s),
+    <s:CompoundStatement> => Statement::Compound(s),
+    <expr:Expression> ";" => Statement::Expression(expr), // TODO: the c99 spec says the expression is optional, investigate
+    //<s:SelectionStatement> => Statement::Selection(s), // this creates ambiguity that lalrpop won't accept
+    <s:IterationStatement> => Statement::Iteration(s),
+    <s:JumpStatement> => Statement::Jump(s),
+};
 
-pub JumpStatement: JumpStatement = "return" <e:Expression?> ";" => JumpStatement::Return(e.map(|v| Box::new(v)));
+pub JumpStatement: JumpStatement = {
+    "goto" <i:Ident> ";" => JumpStatement::Goto(i.into()),
+    "continue" ";" => JumpStatement::Continue,
+    "break" ";" => JumpStatement::Break,
+    "return" <e:Expression?> ";" => JumpStatement::Return(e.map(|v| Box::new(v)))
+};
 
-pub BlockItem: BlockItem = <s:Statement> => BlockItem::Statement(s);
+pub LabeledStatement: LabeledStatement = {
+    <i:Ident> ":" <s:Statement> => LabeledStatement::Statement{ label: i.into(), statement: Box::new(s) },
+    "case" <c:ConstantExpression> ":" <s:Statement> => LabeledStatement::Case{ value: c, body: Box::new(s) },
+    "default" ":" <s:Statement> => LabeledStatement::DefaultCase{ body: Box::new(s) }
+};
+
+pub SelectionStatement: SelectionStatement = {
+    "if" "(" <e:Expression> ")" <s:Statement> <el:ElseClause?> => SelectionStatement::If{ condition: e, body: Box::new(s), else_clause: el.map(|v| Box::new(v)) },
+    "switch" "(" <e:Expression> ")" <s:Statement> => SelectionStatement::Switch{condition: e, body: Box::new(s) }
+};
+
+ElseClause: Statement = {
+    "else" <s:Statement> => s
+};
+
+pub IterationStatement: IterationStatement = {
+    "while" "(" <condition:Expression> ")" <body:Statement> => IterationStatement::While { condition, body: Box::new(body) },
+    "do" <s:Statement> "while" "(" <condition:Expression> ")" ";" => IterationStatement::DoWhile { body: Box::new(s), condition },
+    "for" "(" <expr1:Expression?> ";" <expr2:Expression?> ";" <expr3:Expression?> ")" <body:Statement> => IterationStatement::ForA{ expr1, condition: expr2, expr3: expr3, body: Box::new(body) },
+    "for" "(" <dec:Declaration> <cond:Expression?> ";" <expr3: Expression?> ")" <body:Statement> => IterationStatement::ForB{clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
+};
+
+
+
+pub BlockItem: BlockItem = {
+    <s:Statement> => BlockItem::Statement(Box::new(s)),
+    <d:Declaration> => BlockItem::Declaration(d)
+};
 
 pub CompoundStatement: CompoundStatement = "{" <b:BlockItem+> "}" => b;
 
@@ -352,9 +391,9 @@ pub DirectDeclarator: DirectDeclarator = {
         v.push(DirectDeclaratorPart::ParameterTypeList(p));
         v
     },
-    <v:DirectDeclarator> "(" <l:IdentifierList> ")" => {
+    <v:DirectDeclarator> "(" <l:IdentifierList?> ")" => {
         let mut v = v;
-        v.push(DirectDeclaratorPart::IdentifierList(l));
+        v.push(DirectDeclaratorPart::IdentifierList(l.unwrap_or(vec![])));
         v
     }
 };
@@ -439,6 +478,28 @@ pub Designator: Designator = {
     "." <i:Ident> => Designator::Field(i.into())
 };
 
+// ******************** //
+// External Definitions //
+// ******************** //
+
+pub TranslationUnit: TranslationUnit = <dec:ExternalDeclaration+> => dec;
+
+pub ExternalDeclaration: ExternalDeclaration = {
+    FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
+    Declaration => ExternalDeclaration::Declaration(<>)
+};
+
+pub FunctionDefinition: FunctionDefinition = {
+    <s:DeclarationSpecifiers> <d:Declarator> <l:DeclarationList?> <c:CompoundStatement> => FunctionDefinition {
+        declaration_specifiers: s,
+        declarator: d,
+        declaration_list: l.unwrap_or(vec![]),
+        compound_statement: c
+    }
+};
+
+pub DeclarationList: DeclarationList = <v:Declaration+> => v;
+
 extern { // uses a custom lexer
     type Location = usize;
     type Error = lexer::InvalidToken;
@@ -490,7 +551,18 @@ extern { // uses a custom lexer
         "&=" => Token::AndEq,
         "^=" => Token::XorEq,
         "|=" => Token::OrEq,
+        "goto" => Token::Goto,
+        "continue" => Token::Continue,
+        "break" => Token::Break,
         "return" => Token::Return,
+        "if" => Token::If,
+        "else" => Token::Else,
+        "switch" => Token::Switch,
+        "case" => Token::Case,
+        "default" => Token::Default,
+        "while" => Token::While,
+        "do" => Token::Do,
+        "for" => Token::For,
         "inline" => Token::Inline,
         "typedef" => Token::Typedef,
         "extern" => Token::Extern,
