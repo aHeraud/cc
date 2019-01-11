@@ -13,7 +13,10 @@ pub enum Statement {
     Jump(JumpStatement),
     Labeled(LabeledStatement),
     Compound(CompoundStatement),
-    Expression(Expression),
+    /// Expression Statement = [ Expression ] ";"
+    /// The expression is optional here, which allows you do do something like
+    /// write a labeled statement with no body (`label: ;`).
+    Expression(Option<Expression>),
     Selection(SelectionStatement),
     Iteration(IterationStatement)
 }

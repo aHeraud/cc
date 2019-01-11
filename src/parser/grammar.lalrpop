@@ -192,12 +192,14 @@ pub ConstantExpression: ConstantExpression = <c:ConditionalExpression> => Consta
 // Statements //
 // ********** //
 
-pub Statement: Statement = {
-    <s:LabeledStatement> => Statement::Labeled(s),
+pub Statement = StatementRestricted<"I">;
+
+StatementRestricted<I>: Statement = {
+    <s:LabeledStatement<I>> => Statement::Labeled(s),
     <s:CompoundStatement> => Statement::Compound(s),
-    <expr:Expression> ";" => Statement::Expression(expr), // TODO: the c99 spec says the expression is optional, investigate
-    //<s:SelectionStatement> => Statement::Selection(s), // this creates ambiguity that lalrpop won't accept
-    <s:IterationStatement> => Statement::Iteration(s),
+    <expr:Expression?> ";" => Statement::Expression(expr),
+    <s:SelectionStatement<I>> => Statement::Selection(s),
+    <s:IterationStatement<I>> => Statement::Iteration(s),
     <s:JumpStatement> => Statement::Jump(s),
 };
 
@@ -208,29 +210,30 @@ pub JumpStatement: JumpStatement = {
     "return" <e:Expression?> ";" => JumpStatement::Return(e.map(|v| Box::new(v)))
 };
 
-pub LabeledStatement: LabeledStatement = {
-    <i:Ident> ":" <s:Statement> => LabeledStatement::Statement{ label: i.into(), statement: Box::new(s) },
-    "case" <c:ConstantExpression> ":" <s:Statement> => LabeledStatement::Case{ value: c, body: Box::new(s) },
-    "default" ":" <s:Statement> => LabeledStatement::DefaultCase{ body: Box::new(s) }
+LabeledStatement<I>: LabeledStatement = {
+    <i:Ident> ":" <s:StatementRestricted<I>> => LabeledStatement::Statement{ label: i.into(), statement: Box::new(s) },
+    "case" <c:ConstantExpression> ":" <s:StatementRestricted<I>> => LabeledStatement::Case{ value: c, body: Box::new(s) },
+    "default" ":" <s:StatementRestricted<I>> => LabeledStatement::DefaultCase{ body: Box::new(s) }
 };
 
-pub SelectionStatement: SelectionStatement = {
-    "if" "(" <e:Expression> ")" <s:Statement> <el:ElseClause?> => SelectionStatement::If{ condition: e, body: Box::new(s), else_clause: el.map(|v| Box::new(v)) },
-    "switch" "(" <e:Expression> ")" <s:Statement> => SelectionStatement::Switch{condition: e, body: Box::new(s) }
+SelectionStatement<I>: SelectionStatement = {
+    IfStatement<I> => <>,
+    "switch" "(" <e:Expression> ")" <s:StatementRestricted<I>> => SelectionStatement::Switch{condition: e, body: Box::new(s) }
 };
 
-ElseClause: Statement = {
-    "else" <s:Statement> => s
+IfStatement<I>: SelectionStatement = {
+    "if" "(" <cond:Expression> ")" <body:StatementRestricted<"I">> if I != "" =>
+        SelectionStatement::If{ condition: cond, body: Box::new(body), else_clause: None },
+    "if" "("  <cond:Expression> ")" <body:StatementRestricted<"">> "else" <e:StatementRestricted<I>> =>
+        SelectionStatement::If{ condition: cond, body: Box::new(body), else_clause: Some(Box::new(e)) }
 };
 
-pub IterationStatement: IterationStatement = {
-    "while" "(" <condition:Expression> ")" <body:Statement> => IterationStatement::While { condition, body: Box::new(body) },
+IterationStatement<I>: IterationStatement = {
+    "while" "(" <condition:Expression> ")" <body:StatementRestricted<I>> => IterationStatement::While { condition, body: Box::new(body) },
     "do" <s:Statement> "while" "(" <condition:Expression> ")" ";" => IterationStatement::DoWhile { body: Box::new(s), condition },
-    "for" "(" <expr1:Expression?> ";" <expr2:Expression?> ";" <expr3:Expression?> ")" <body:Statement> => IterationStatement::ForA{ expr1, condition: expr2, expr3: expr3, body: Box::new(body) },
-    "for" "(" <dec:Declaration> <cond:Expression?> ";" <expr3: Expression?> ")" <body:Statement> => IterationStatement::ForB{clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
+    "for" "(" <expr1:Expression?> ";" <expr2:Expression?> ";" <expr3:Expression?> ")" <body:StatementRestricted<I>> => IterationStatement::ForA{ expr1, condition: expr2, expr3: expr3, body: Box::new(body) },
+    "for" "(" <dec:Declaration> <cond:Expression?> ";" <expr3: Expression?> ")" <body:StatementRestricted<I>> => IterationStatement::ForB{clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
 };
-
-
 
 pub BlockItem: BlockItem = {
     <s:Statement> => BlockItem::Statement(Box::new(s)),
