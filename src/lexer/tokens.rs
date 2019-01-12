@@ -1,3 +1,5 @@
+use crate::parser::ast::Integer;
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum Token<'a> {
     /* punctuation */
@@ -91,8 +93,8 @@ pub enum Token<'a> {
     /* identifiers */
     Identifier(&'a str),
 
-    /* An integer literal, can be in decimal, hex (0x), octal (0o), or binary (0b) */
-    IntLiteral(&'a str),
+    /* An integer literal, can be in decimal, hex (0x), octal (0), or binary (0b) */
+    IntLiteral(Integer),
 
     /* a floating point literal, consists of an optional whole number part, followed by '.', and
        then an optional fraction part, followed by an optional exponent part, 

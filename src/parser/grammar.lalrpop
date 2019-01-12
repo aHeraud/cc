@@ -4,7 +4,9 @@ use crate::parser::ast::*;
 
 grammar<'input>;
 
-pub Constant: Constant = <c:IntLiteral> => Constant::Integer(c.to_string());
+pub Constant: Constant = {
+    <c:IntLiteral> => Constant::Integer(c)
+};
 
 // *********** //
 // Expressions //
@@ -589,7 +591,7 @@ extern { // uses a custom lexer
         "unsigned" => Token::Unsigned,
         "sizeof" => Token::SizeOf,
         Ident => Token::Identifier(<&'input str>),
-        IntLiteral => Token::IntLiteral(<&'input str>),
+        IntLiteral => Token::IntLiteral(<Integer>),
         FloatLiteral => Token::FloatLiteral(<&'input str>),
         StringLiteral => Token::StringLiteral(<&'input str>)
     }

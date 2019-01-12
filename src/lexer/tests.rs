@@ -100,10 +100,3 @@ lex_token_test!(sizeof, "sizeof", Token::SizeOf);
 lex_token_test!(ident1, "a", Token::Identifier("a"));
 lex_token_test!(ident_begins_with_keyword1, "return_addr", Token::Identifier("return_addr"));
 lex_token_test!(ident_begins_with_keyword2, "external", Token::Identifier("external"));
-
-// constants
-// TODO: octal, binary int literals
-// TODO: string literals
-// TODO: floating point literals
-lex_token_test!(decimal_int_literal, "425", Token::IntLiteral("425"));
-lex_token_test!(hexadecimal_int_literal, "0x425", Token::IntLiteral("0x425"));

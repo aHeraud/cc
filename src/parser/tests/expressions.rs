@@ -18,7 +18,7 @@ mod primary_expression {
         let p_exp = PrimaryExpressionParser::new()
             .parse(lexer)
             .unwrap();
-        assert_eq!(p_exp, PrimaryExpression::Constant(Constant::Integer("42".into())));
+        assert_eq!(p_exp, PrimaryExpression::Constant(Constant::Integer(Integer::I32(42))));
     }
 
     // TODO: (expr)
@@ -53,7 +53,7 @@ mod postfix_expression {
                                                             Box::new(MultiplicativeExpression::CastExpression(
                                                                 Box::new(CastExpression::UnaryExpression(
                                                                     Box::new(UnaryExpression::PostfixExpression(
-                                                                        vec![PostfixExpressionPart::PrimaryExpression(PrimaryExpression::Constant(Constant::Integer("10".into())))]
+                                                                        vec![PostfixExpressionPart::PrimaryExpression(PrimaryExpression::Constant(Constant::Integer(Integer::I32(10))))]
                                                                     )
                                                                 ))
                                                             ))

@@ -4,10 +4,12 @@ use nom::types::CompleteStr;
 
 mod tokens;
 mod error;
+mod integer_literals;
 
 #[cfg(test)]
 mod tests;
 
+use self::integer_literals::integer_literal;
 pub use self::error::InvalidToken;
 pub use self::tokens::Token;
 
@@ -253,21 +255,3 @@ named!(ident(CompleteStr) -> Token, do_parse!(
 fn is_keyword<'a>(s: &'a str) -> bool {
     KEYWORDS.contains(s)
 }
-
-named!(integer_literal(CompleteStr) -> Token, alt!(
-    hex_integer_literal | decimal_integer_literal
-));
-
-named!(decimal_integer_literal(CompleteStr) -> Token, do_parse!(
-    literal: take_while1!(|c: char| c.is_digit(10)) >>
-    (Token::IntLiteral(&literal))
-));
-
-named!(hex_integer_literal(CompleteStr) -> Token, do_parse!(
-    literal: recognize!(do_parse!(
-        tag!("0x") >>
-        take_while1!(|c: char| c.is_digit(10)) >>
-        (())
-    )) >>
-    (Token::IntLiteral(&literal))
-));
