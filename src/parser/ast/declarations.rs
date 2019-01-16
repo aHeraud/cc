@@ -130,6 +130,21 @@ pub enum SpecifierQualifier {
     TypeQualifier(TypeQualifier)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeName {
+    specifier_qualifier_list: SpecifierQualifierList,
+    abstract_declarator: Option<AbstractDeclarator>
+}
+
+impl TypeName {
+    pub fn new(l: SpecifierQualifierList, dec: Option<AbstractDeclarator>) -> TypeName {
+        TypeName {
+            specifier_qualifier_list: l,
+            abstract_declarator: dec
+        }
+    }
+}
+
 pub type StructDeclaratorList = Vec<StructDeclarator>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

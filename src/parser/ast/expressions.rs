@@ -1,3 +1,5 @@
+use crate::parser::ast::{TypeName, InitializerList};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
     Integer(Integer)
@@ -36,7 +38,7 @@ pub enum PostfixExpressionPart {
     PointerMemberAccess(String), // member access with arrow operator
     Increment, // postfix ++
     Decrement, // postfix --
-    //TypeInitializerList{type_name: TypeName, initializer_list: InitializerList} // TODO: (what is the definition for an initializer-list???)
+    TypeInitializerList{type_name: TypeName, initializer_list: InitializerList} // TODO: (what is the definition for an initializer-list???)
 }
 
 pub type ArgumentExpressionList = Vec<AssignmentExpression>;
@@ -48,7 +50,7 @@ pub enum UnaryExpression {
     Decrement(Box<UnaryExpression>),
     UnaryOperator((UnaryOperator, CastExpression)),
     SizeOfExpr(Box<UnaryExpression>),
-    //SizeOfType(type?)
+    SizeOfType(TypeName)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,7 +66,7 @@ pub enum UnaryOperator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CastExpression {
     UnaryExpression(Box<UnaryExpression>),
-    //Cast{ type_name: TypeName, cast_expression: Box<CastExpression> } // what is the definition of a type name
+    Cast{ type_name: TypeName, cast_expression: Box<CastExpression> }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

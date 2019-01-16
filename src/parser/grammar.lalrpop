@@ -50,8 +50,8 @@ pub PostfixExpression: PostfixExpression = {
         let mut v = v;
         v.push(PostfixExpressionPart::Decrement);
         v
-    }
-    // "(" <t:TypeName> ")" "{" InitializerList ","? "}" => (), // TODO
+    },
+    "(" <t:TypeName> ")" "{" <l:InitializerList> ","? "}" => vec![PostfixExpressionPart::TypeInitializerList { type_name: t, initializer_list: l }]
 };
 
 pub ArgumentExpressionList: ArgumentExpressionList = {
@@ -69,7 +69,7 @@ pub UnaryExpression: UnaryExpression = {
     "--" <u:UnaryExpression> => UnaryExpression::Decrement(Box::new(u)),
     <u:UnaryOperator> <c:CastExpression> => UnaryExpression::UnaryOperator((u, c)),
     "sizeof" <u:UnaryExpression> => UnaryExpression::SizeOfExpr(Box::new(u)),
-    //"sizeof" "(" <t:TypeName> ")" => () //TODO
+    "sizeof" "(" <t:TypeName> ")" => UnaryExpression::SizeOfType(t)
 }
 
 pub UnaryOperator: UnaryOperator = {
@@ -83,7 +83,7 @@ pub UnaryOperator: UnaryOperator = {
 
 pub CastExpression: CastExpression = {
     <u:UnaryExpression> => CastExpression::UnaryExpression(Box::new(u)),
-    // "(" <t:TypeName> ")" <c:CastExpression> => CastExpression::Cast{ type_name: t, cast_expression: Box::new(e) } // TODO: what exactly is a type name
+    "(" <t:TypeName> ")" <c:CastExpression> => CastExpression::Cast{ type_name: t, cast_expression: Box::new(c) }
 };
 
 pub MultiplicativeExpression: MultiplicativeExpression = {
@@ -328,6 +328,10 @@ pub SpecifierQualifierList: SpecifierQualifierList = <e:SpecifierQualifier+> => 
 SpecifierQualifier: SpecifierQualifier = {
     <t:TypeSpecifier> => SpecifierQualifier::TypeSpecifier(t),
     <q:TypeQualifier> => SpecifierQualifier::TypeQualifier(q)
+};
+
+pub TypeName: TypeName = {
+    <list:SpecifierQualifierList> <dec:AbstractDeclarator?> => TypeName::new(list, dec)
 };
 
 pub StructDeclarationList: StructDeclarationList = <l:StructDeclaration+> => l;
