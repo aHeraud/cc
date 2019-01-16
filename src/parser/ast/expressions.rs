@@ -21,7 +21,7 @@ pub enum Integer {
 pub enum PrimaryExpression {
     Identifier(String),
     Constant(Constant),
-    StringLiteral(String),
+    StringLiteral{ wide: bool, contents: String },
     Parens(Box<Expression>)
 }
 

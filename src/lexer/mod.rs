@@ -99,7 +99,7 @@ macro_rules! recognize_char {
 }
 
 named!(token(CompleteStr) -> Token, alt!(
-    punctuation | ident | keyword | integer_literal
+    punctuation | string_literal | ident | keyword | integer_literal
 ));
 
 named!(punctuation(CompleteStr) -> Token, alt!(
@@ -255,3 +255,50 @@ named!(ident(CompleteStr) -> Token, do_parse!(
 fn is_keyword<'a>(s: &'a str) -> bool {
     KEYWORDS.contains(s)
 }
+
+named!(string_literal(CompleteStr) -> Token, do_parse!(
+    wide: opt!(char!('L')) >>
+    char!('"') >>
+    s: recognize!(many0!(s_char)) >>
+    char!('"') >>
+    (Token::StringLiteral{ wide: wide.is_some(), contents: &s })
+));
+
+named!(s_char(CompleteStr) -> CompleteStr, alt!(
+        recognize!(none_of!("\"\\\n")) |
+        escape_sequence
+));
+
+named!(escape_sequence(CompleteStr) -> CompleteStr, alt!(
+    /* simple escape sequence */
+    alt!(
+        tag!("\\'") |
+        tag!("\\\"") |
+        tag!("\\?") |
+        tag!("\\a") |
+        tag!("\\b") |
+        tag!("\\f") |
+        tag!("\\n") |
+        tag!("\\r") |
+        tag!("\\t") |
+        tag!("\\v")
+    ) |
+    /* octal escape sequence */
+    recognize!(do_parse!(
+        tag!("\\") >>
+        take_while1!(|c: char| c.is_digit(8)) >>
+        ()
+    )) |
+    /* hexadecimal escape sequence */
+    recognize!(do_parse!(
+        tag!("\\x") >>
+        take_while1!(|c: char| c.is_digit(16)) >>
+        ()
+    )) |
+    /* universal character name */
+    recognize!(do_parse!(
+        tag!("\\u") >>
+        take_while1!(|c: char| c.is_digit(16)) >>
+        ()
+    ))
+));

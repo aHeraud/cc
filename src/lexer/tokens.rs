@@ -102,5 +102,5 @@ pub enum Token<'a> {
     */
     FloatLiteral(&'a str),
 
-    StringLiteral(&'a str)
+    StringLiteral{ wide: bool, contents: &'a str }
 }

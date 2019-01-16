@@ -12,9 +12,10 @@ pub Constant: Constant = {
 // Expressions //
 // *********** //
 
-pub PrimaryExpression: PrimaryExpression = { // TODO: string literals
+pub PrimaryExpression: PrimaryExpression = {
     Ident => PrimaryExpression::Identifier(<>.into()),
     Constant => PrimaryExpression::Constant(<>),
+    <s:StringLiteral> => PrimaryExpression::StringLiteral{ wide: s.0, contents: s.1.into() },
     "(" <e:Expression> ")" => PrimaryExpression::Parens(Box::new(e))
 };
 
@@ -593,6 +594,6 @@ extern { // uses a custom lexer
         Ident => Token::Identifier(<&'input str>),
         IntLiteral => Token::IntLiteral(<Integer>),
         FloatLiteral => Token::FloatLiteral(<&'input str>),
-        StringLiteral => Token::StringLiteral(<&'input str>)
+        StringLiteral => Token::StringLiteral{wide: <bool>, contents: <&'input str>}
     }
 }

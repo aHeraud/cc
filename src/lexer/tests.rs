@@ -100,3 +100,10 @@ lex_token_test!(sizeof, "sizeof", Token::SizeOf);
 lex_token_test!(ident1, "a", Token::Identifier("a"));
 lex_token_test!(ident_begins_with_keyword1, "return_addr", Token::Identifier("return_addr"));
 lex_token_test!(ident_begins_with_keyword2, "external", Token::Identifier("external"));
+
+// string literals
+lex_token_test!(string_literal, r#""hello world!""#, Token::StringLiteral{ wide: false, contents: "hello world!"});
+lex_token_test!(string_literal_simple_escape, r#""hello world!\r\n""#, Token::StringLiteral{ wide: false, contents: r#"hello world!\r\n"# });
+lex_token_test!(string_literal_ucs, r#""\u2699""#, Token::StringLiteral{ wide: false, contents: r#"\u2699"# });
+lex_token_test!(string_literal_escaped_quote, r#""\"""#, Token::StringLiteral{ wide: false, contents: r#"\""# });
+lex_token_test!(wide_string_literal, r#"L"hello world!""#, Token::StringLiteral{ wide: true, contents: "hello world!" });
