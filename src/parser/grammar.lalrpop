@@ -371,7 +371,14 @@ pub Enumerator: Enumerator = {
     <i:Ident> "=" <c:ConstantExpression> => Enumerator { identifier: i.into(), value: Some(c) }
 };
 
-pub Declarator: Declarator = <d:DirectDeclarator> => Declarator { direct_declarator: d };
+pub Declarator: Declarator = {
+    <ptr:Pointer?> <d:DirectDeclarator> => {
+        Declarator {
+            pointer: ptr,
+            direct_declarator: d
+        }
+    }
+}
 
 pub DirectDeclarator: DirectDeclarator = {
     <i:Ident> => vec![DirectDeclaratorPart::Identifier(i.into())],
@@ -436,8 +443,23 @@ pub ParameterDeclaration: ParameterDeclaration = {
     <s: DeclarationSpecifiers> <d:AbstractDeclarator?> => ParameterDeclaration { declaration_specifier_list: s, declarator:  ParameterDeclarator::AbstractDeclarator(d.map(|v| Box::new(v))) }
 };
 
-//TODO: abstract declarator pointers
-pub AbstractDeclarator: AbstractDeclarator = DirectAbstractDeclarator => AbstractDeclarator::new(<>);
+pub AbstractDeclarator: AbstractDeclarator = {
+    <p:Pointer> => {
+        panic!()
+    },
+    <p:Pointer?> <dec:DirectAbstractDeclarator> => {
+        panic!()
+    }
+};
+
+Pointer: Vec<Pointer> = {
+    "*" <t:TypeQualifier+?> => vec![Pointer { qualifiers: t.unwrap_or(Vec::new()) }],
+    <ptr:Pointer> "*" <t:TypeQualifier+?> => {
+        let mut v = ptr;
+        v.push(Pointer{ qualifiers: t.unwrap_or(Vec::new()) });
+        v
+    }
+};
 
 pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
     "(" <a:AbstractDeclarator> ")" => vec![DirectAbstractDeclaratorPart::Parens(Box::new(a))],

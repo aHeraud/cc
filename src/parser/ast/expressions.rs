@@ -38,7 +38,7 @@ pub enum PostfixExpressionPart {
     PointerMemberAccess(String), // member access with arrow operator
     Increment, // postfix ++
     Decrement, // postfix --
-    TypeInitializerList{type_name: TypeName, initializer_list: InitializerList} // TODO: (what is the definition for an initializer-list???)
+    TypeInitializerList{type_name: TypeName, initializer_list: InitializerList}
 }
 
 pub type ArgumentExpressionList = Vec<AssignmentExpression>;

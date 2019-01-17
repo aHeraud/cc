@@ -17,15 +17,15 @@ fn named_parameter_type_list() {
         parameter_list: vec![
             ParameterDeclaration {
                 declaration_specifier_list: vec![DeclarationSpecifier::TypeSpecifier(TypeSpecifier::Int)],
-                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("a"))] }))
+                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { pointer: None, direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("a"))] }))
             },
             ParameterDeclaration {
                 declaration_specifier_list: vec![DeclarationSpecifier::TypeSpecifier(TypeSpecifier::Int)],
-                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("b"))] }))
+                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { pointer: None, direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("b"))] }))
             },
             ParameterDeclaration {
                 declaration_specifier_list: vec![DeclarationSpecifier::TypeSpecifier(TypeSpecifier::Float)],
-                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("c"))] }))
+                declarator: ParameterDeclarator::Declarator(Box::new(Declarator { pointer:None, direct_declarator: vec![DirectDeclaratorPart::Identifier(String::from("c"))] }))
             }
         ],
         variadic: false
@@ -94,4 +94,13 @@ fn abstract_direct_declarator_parameter_type_list() {
         ],
         variadic: false
     }))]);
+}
+
+#[test]
+fn pointer_to_int() {
+    let source = "int *foo;";
+    let lexer = Lexer::new(OsString::from("test.c"), source);
+    let ast = grammar::DeclarationParser::new()
+        .parse(lexer)
+        .unwrap();
 }

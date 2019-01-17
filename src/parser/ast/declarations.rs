@@ -23,14 +23,9 @@ pub struct InitDeclarator {
     pub initializer: Option<Initializer>
 }
 
-//#[derive(Debug, Clone, PartialEq, Eq)]
-//pub struct Pointer {
-//    qualifiers: Vec<TypeQualifier>,
-//    inner: Option<Box<Pointer>>
-//}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Declarator {
+    pub pointer: Option<Vec<Pointer>>,
     pub direct_declarator: DirectDeclarator
 }
 
@@ -194,16 +189,14 @@ pub struct ParameterDeclaration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AbstractDeclarator {
-    pub direct_abstract_declarator: DirectAbstractDeclarator
+pub struct Pointer {
+    pub qualifiers: Vec<TypeQualifier>
 }
 
-impl AbstractDeclarator {
-    pub fn new(direct_abstract_declarator: DirectAbstractDeclarator) -> AbstractDeclarator {
-        AbstractDeclarator {
-            direct_abstract_declarator
-        }
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AbstractDeclarator {
+    pub pointer: Option<Vec<Pointer>>,
+    pub direct_abstract_declarator: DirectAbstractDeclarator
 }
 
 pub type DirectAbstractDeclarator = Vec<DirectAbstractDeclaratorPart>;

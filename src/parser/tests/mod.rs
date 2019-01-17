@@ -9,11 +9,13 @@ mod expressions;
 
 #[test]
 fn hello_world() {
-    let source = "
-    int main();
-    int main(void) {
+    let source = r#"
+    int main(int argc, char argv[]);
+
+    int main(int argc, char argv[]) {
+        printf("hello, world!");
         return 0;
-    }";
+    }"#;
     let input = Lexer::new("test.c".into(), source);
     let ast = TranslationUnitParser::new()
         .parse(input)
