@@ -5,3 +5,5 @@ mod grammar;
 mod tests;
 
 use self::ast::*;
+
+pub use self::grammar::TranslationUnitParser as Parser;

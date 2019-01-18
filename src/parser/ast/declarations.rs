@@ -194,9 +194,9 @@ pub struct Pointer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AbstractDeclarator {
-    pub pointer: Option<Vec<Pointer>>,
-    pub direct_abstract_declarator: DirectAbstractDeclarator
+pub enum AbstractDeclarator {
+    Pointer(Vec<Pointer>),
+    DirectAbstractDeclarator { pointer: Option<Vec<Pointer>>, direct_abstract_declarator: DirectAbstractDeclarator }
 }
 
 pub type DirectAbstractDeclarator = Vec<DirectAbstractDeclaratorPart>;

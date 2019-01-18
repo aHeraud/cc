@@ -445,10 +445,10 @@ pub ParameterDeclaration: ParameterDeclaration = {
 
 pub AbstractDeclarator: AbstractDeclarator = {
     <p:Pointer> => {
-        panic!()
+        AbstractDeclarator::Pointer(p)
     },
     <p:Pointer?> <dec:DirectAbstractDeclarator> => {
-        panic!()
+        AbstractDeclarator::DirectAbstractDeclarator{ pointer: p, direct_abstract_declarator: dec }
     }
 };
 
