@@ -1,8 +1,12 @@
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::lexer;
 use crate::lexer::Token;
-use crate::parser::ast::*;
+use ast::*;
 
-grammar<'input>;
+grammar<'input>();
+
+Node<Rule>: Node<Rule> = <l: @L> <rule: Rule> <r: @R> => Node::new(rule, l, r);
 
 pub Constant: Constant = {
     <c:IntLiteral> => Constant::Integer(c)
@@ -55,8 +59,8 @@ pub PostfixExpression: PostfixExpression = {
 };
 
 pub ArgumentExpressionList: ArgumentExpressionList = {
-    <a:AssignmentExpression> => vec![a],
-    <v:ArgumentExpressionList> "," <a:AssignmentExpression> => {
+    <a:Node<AssignmentExpression>> => vec![a],
+    <v:ArgumentExpressionList> "," <a:Node<AssignmentExpression>> => {
         let mut v = v;
         v.push(a);
         v
@@ -214,36 +218,48 @@ pub JumpStatement: JumpStatement = {
 };
 
 LabeledStatement<I>: LabeledStatement = {
-    <i:Ident> ":" <s:StatementRestricted<I>> => LabeledStatement::Statement{ label: i.into(), statement: Box::new(s) },
-    "case" <c:ConstantExpression> ":" <s:StatementRestricted<I>> => LabeledStatement::Case{ value: c, body: Box::new(s) },
-    "default" ":" <s:StatementRestricted<I>> => LabeledStatement::DefaultCase{ body: Box::new(s) }
+    <i:Ident> ":" <s:Node<StatementRestricted<I>>> => LabeledStatement::Statement{ label: i.into(), statement: Box::new(s) },
+    "case" <c:Node<ConstantExpression>> ":" <s:Node<StatementRestricted<I>>> => LabeledStatement::Case{ value: c, body: Box::new(s) },
+    "default" ":" <s:Node<StatementRestricted<I>>> => LabeledStatement::DefaultCase{ body: Box::new(s) }
 };
 
 SelectionStatement<I>: SelectionStatement = {
     IfStatement<I> => <>,
-    "switch" "(" <e:Expression> ")" <s:StatementRestricted<I>> => SelectionStatement::Switch{condition: e, body: Box::new(s) }
+    "switch" "(" <e:Node<Expression>> ")" <s:Node<StatementRestricted<I>>> => SelectionStatement::Switch{condition: e, body: Box::new(s) }
 };
 
 IfStatement<I>: SelectionStatement = {
-    "if" "(" <cond:Expression> ")" <body:StatementRestricted<"I">> if I != "" =>
+    "if" "(" <cond:Node<Expression>> ")" <body:Node<StatementRestricted<"I">>> if I != "" =>
         SelectionStatement::If{ condition: cond, body: Box::new(body), else_clause: None },
-    "if" "("  <cond:Expression> ")" <body:StatementRestricted<"">> "else" <e:StatementRestricted<I>> =>
+    "if" "("  <cond:Node<Expression>> ")" <body:Node<StatementRestricted<"">>> "else" <e:Node<StatementRestricted<I>>> =>
         SelectionStatement::If{ condition: cond, body: Box::new(body), else_clause: Some(Box::new(e)) }
 };
 
 IterationStatement<I>: IterationStatement = {
-    "while" "(" <condition:Expression> ")" <body:StatementRestricted<I>> => IterationStatement::While { condition, body: Box::new(body) },
-    "do" <s:Statement> "while" "(" <condition:Expression> ")" ";" => IterationStatement::DoWhile { body: Box::new(s), condition },
-    "for" "(" <expr1:Expression?> ";" <expr2:Expression?> ";" <expr3:Expression?> ")" <body:StatementRestricted<I>> => IterationStatement::ForA{ expr1, condition: expr2, expr3: expr3, body: Box::new(body) },
-    "for" "(" <dec:Declaration> <cond:Expression?> ";" <expr3: Expression?> ")" <body:StatementRestricted<I>> => IterationStatement::ForB{clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
+    "while" "(" <condition:Node<Expression>> ")" <body:Node<StatementRestricted<I>>> => IterationStatement::While { condition, body: Box::new(body) },
+    "do" <s:Node<Statement>> "while" "(" <condition:Node<Expression>> ")" ";" => IterationStatement::DoWhile { body: Box::new(s), condition },
+    "for" "(" <expr1:Node<Expression>?> ";" <expr2:Node<Expression>?> ";" <expr3:Node<Expression>?> ")" <body:Node<StatementRestricted<I>>> => IterationStatement::ForA{ expr1, condition: expr2, expr3: expr3, body: Box::new(body) },
+    "for" "(" <dec:Node<Declaration>> <cond:Node<Expression>?> ";" <expr3: Node<Expression>?> ")" <body:Node<StatementRestricted<I>>> => IterationStatement::ForB{ clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
 };
 
 pub BlockItem: BlockItem = {
     <s:Statement> => BlockItem::Statement(Box::new(s)),
-    <d:Declaration> => BlockItem::Declaration(d)
+    <d:Declaration> => {
+        BlockItem::Declaration(d)
+    }
 };
 
-pub CompoundStatement: CompoundStatement = "{" <b:BlockItem+> "}" => b;
+BlockScopeEnter: () = "{" => {
+    //symbol_table.borrow_mut().scope_enter(ScopeType::Block);
+    ()
+};
+
+BlockScopeLeave: () = "}" => {
+    //symbol_table.borrow_mut().scope_leave();
+    ()
+};
+
+pub CompoundStatement: CompoundStatement = BlockScopeEnter <b:Node<BlockItem>+> BlockScopeLeave => b;
 
 
 // ************ //
@@ -295,7 +311,8 @@ TypeSpecifier: TypeSpecifier = {
     "unsigned" => TypeSpecifier::Unsigned,
     "signed" => TypeSpecifier::Signed,
     StructOrUnionSpecifier => TypeSpecifier::StructOrUnionSpecifier(<>),
-    EnumSpecifier => TypeSpecifier::EnumSpecifier(<>)
+    EnumSpecifier => TypeSpecifier::EnumSpecifier(<>),
+    //<i:Ident> => TypeSpecifier::Typedef(i)
 };
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
@@ -516,9 +533,9 @@ pub Designator: Designator = {
 
 pub TranslationUnit: TranslationUnit = <dec:ExternalDeclaration+> => dec;
 
-pub ExternalDeclaration: ExternalDeclaration = {
-    FunctionDefinition => ExternalDeclaration::FunctionDefinition(<>),
-    Declaration => ExternalDeclaration::Declaration(<>)
+pub ExternalDeclaration: Node<ExternalDeclaration> = {
+    <l:@L> <f:FunctionDefinition> <r:@R> => Node::new(ExternalDeclaration::FunctionDefinition(f), l, r),
+    <l:@L> <d:Declaration> <r:@R> => Node::new(ExternalDeclaration::Declaration(d), l, r)
 };
 
 pub FunctionDefinition: FunctionDefinition = {
@@ -530,10 +547,10 @@ pub FunctionDefinition: FunctionDefinition = {
     }
 };
 
-pub DeclarationList: DeclarationList = <v:Declaration+> => v;
+pub DeclarationList: DeclarationList = <Node<Declaration>+> => <>;
 
 extern { // uses a custom lexer
-    type Location = usize;
+    type Location = ast::Location;
     type Error = lexer::InvalidToken;
 
     enum Token<'input> {

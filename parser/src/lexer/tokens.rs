@@ -1,6 +1,6 @@
-use crate::parser::ast::Integer;
+use ast::Integer;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token<'a> {
     /* punctuation */
     LParen,
@@ -87,11 +87,13 @@ pub enum Token<'a> {
     Signed,
     Unsigned,
     SizeOf,
-    //_Bool,
-    //_Complex,
+    Bool,
+    Complex,
 
     /* identifiers */
     Identifier(&'a str),
+
+    TypedefType(&'a str),
 
     /* An integer literal, can be in decimal, hex (0x), octal (0), or binary (0b) */
     IntLiteral(Integer),

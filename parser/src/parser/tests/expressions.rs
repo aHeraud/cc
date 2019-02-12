@@ -1,6 +1,6 @@
 mod primary_expression {
     use crate::lexer::Lexer;
-    use crate::parser::ast::*;
+    use ast::*;
     use crate::parser::grammar::*;
 
     #[test]
@@ -26,8 +26,8 @@ mod primary_expression {
 
 mod postfix_expression {
     use crate::lexer::Lexer;
-    use crate::parser::ast::*;
     use crate::parser::grammar::*;
+    use ast::*;
 
     #[test]
     fn array_access_constant_index() {

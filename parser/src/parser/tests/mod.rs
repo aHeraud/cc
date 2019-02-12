@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 
 use crate::lexer::Lexer;
-use crate::parser::ast::*;
+use ast::*;
 use crate::parser::grammar::*;
 
 mod declarations;

@@ -1,11 +1,11 @@
-use crate::parser::ast::{TypeName, InitializerList};
+use crate::{Node, TypeName, InitializerList};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constant {
     Integer(Integer)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Integer {
     U8(u8),
     I8(i8),
@@ -41,7 +41,7 @@ pub enum PostfixExpressionPart {
     TypeInitializerList{type_name: TypeName, initializer_list: InitializerList}
 }
 
-pub type ArgumentExpressionList = Vec<AssignmentExpression>;
+pub type ArgumentExpressionList = Vec<Node<AssignmentExpression>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnaryExpression {

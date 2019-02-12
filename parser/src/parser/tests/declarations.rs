@@ -1,10 +1,8 @@
 use std::ffi::OsString;
 
 use crate::parser::*;
-use crate::parser::ast::*;
 use crate::lexer::*;
-
-
+use ast::*;
 
 #[test]
 fn named_parameter_type_list() {

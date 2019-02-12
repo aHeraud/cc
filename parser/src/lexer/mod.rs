@@ -1,5 +1,7 @@
 use std::ffi::OsString;
 use std::collections::HashSet;
+use std::rc::Rc;
+
 use nom::types::CompleteStr;
 
 mod tokens;
@@ -10,8 +12,9 @@ mod integer_literals;
 mod tests;
 
 use self::integer_literals::integer_literal;
-pub use self::error::InvalidToken;
+pub use error::InvalidToken;
 pub use self::tokens::Token;
+use ast::Location;
 
 lazy_static! {
     static ref KEYWORDS: HashSet<&'static str> = {
@@ -27,51 +30,81 @@ lazy_static! {
 pub type Spanned<Token, Loc, Error> = Result<(Loc, Token, Loc), Error>;
 
 pub struct Lexer<'input> {
-    pub source_filename: OsString,
+    pub source_filename: Rc<OsString>,
     pub source: &'input str,
 
-    /* the current offset (in bytes) from the beginning of the file */
-    offset: usize
+    /// the current offset (in bytes) from the beginning of the file
+    offset: usize,
+
+    /// The current line (meaning, the next time we try to lex a token we will start on this line)
+    line: usize,
+
+    /// The offset from the beginning of the file to the beginning of the current line.
+    column: usize
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(source_filename: OsString, source: &'input str) -> Lexer<'input> {
         Lexer {
-            source_filename,
+            source_filename: Rc::new(source_filename),
             source,
-            offset: 0
+            offset: 0,
+            line: 1,
+            column: 1
         }
     }
 
-    pub fn advance(&mut self) -> Option<Spanned<Token<'input>, usize, InvalidToken>> {
+    pub fn advance(&mut self) -> Option<Spanned<Token<'input>, Location, InvalidToken>> {
         if self.offset >= self.source.len() {
             return None;
         }
         let s = &self.source[self.offset..].trim_left();
-        let offset = self.offset + ((self.source.len() - self.offset) - s.len());
-        let slice = CompleteStr(&self.source[offset..]);
+        let new_offset = self.offset + ((self.source.len() - self.offset) - s.len());
+        self.update_location(self.offset, new_offset);
+        self.offset = new_offset;
+        let slice = CompleteStr(&self.source[self.offset..]);
 
         if slice.len() == 0 {
             return None;
         }
 
+        let start = self.location();
         match token(slice) {
             Ok((input,token)) => {
                 let token_len = s.len() - input.len();
-                let new_offset = offset + token_len;
+                let new_offset = self.offset + token_len;
+                self.update_location(self.offset, new_offset);
                 self.offset = new_offset;
-                return Some(Ok((offset, token, token_len)));
+                return Some(Ok((start, token, self.location())));
             },
             Err(_err) => {
                 // invalid (or incomplete) token
-                return Some(Err(InvalidToken::from_offset(self.source_filename.clone(), &self.source, offset)));
+                return Some(Err(InvalidToken::from_offset(self.location(), self.source)));
             }
         };
+    }
+
+    /// Updates the line and column fields by counting newlines that have recently been lexed
+    fn update_location(&mut self, old_offset: usize, new_offset: usize) {
+        let s = &self.source[old_offset..new_offset];
+        for c in s.chars() {
+            if c == '\n' {
+                self.line += 1;
+                self.column = 1;
+            }
+            else {
+                self.column += 1;
+            }
+        }
+    }
+
+    fn location(&self) -> Location {
+        Location::new(self.source_filename.clone(), self.line, self.column, self.offset)
     }
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Spanned<Token<'a>, usize, InvalidToken>;
+    type Item = Spanned<Token<'a>, Location, InvalidToken>;
     
     /// Get the next token from the source file
     fn next(&mut self) -> Option<Self::Item> {

@@ -1,14 +1,14 @@
 use super::*;
 
-pub type TranslationUnit = Vec<ExternalDeclaration>;
+pub type TranslationUnit = Vec<Node<ExternalDeclaration>>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ExternalDeclaration {
     FunctionDefinition(FunctionDefinition),
     Declaration(Declaration)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct FunctionDefinition {
     pub declaration_specifiers: DeclarationSpecifiers,
     pub declarator: Declarator,
@@ -16,4 +16,4 @@ pub struct FunctionDefinition {
     pub compound_statement: CompoundStatement
 }
 
-pub type DeclarationList = Vec<Declaration>;
+pub type DeclarationList = Vec<Node<Declaration>>;

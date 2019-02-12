@@ -2,7 +2,7 @@ use nom::IResult;
 use nom::types::CompleteStr;
 
 use crate::lexer::Token;
-use crate::parser::ast::Integer;
+use ast::Integer;
 
 #[derive(PartialEq, Eq)]
 enum Base {
@@ -66,15 +66,15 @@ pub fn integer_literal(input: CompleteStr) -> IResult<CompleteStr, Token, u32> {
 ///
 /// Rules:
 ///
-///     1. The valid integer types are signed or unsigned ints, long ints, and long long ints.
+///  1. The valid integer types are signed or unsigned ints, long ints, and long long ints.
 ///
-///     2. Decimal int literals must be treated as being signed, unless they have a sign specifier.
+///  2. Decimal int literals must be treated as being signed, unless they have a sign specifier.
 ///
-///     3. If the literal has a long size specifier ("l"), it must either be a long int or a long long int.
+///  3. If the literal has a long size specifier ("l"), it must either be a long int or a long long int.
 ///
-///     4. If the literal has a long long size specifier ("ll"), it must be a long long int.
+///  4. If the literal has a long long size specifier ("ll"), it must be a long long int.
 ///
-///     5. The type of the integer is the smallest type that can hold the value while following the previous 4 rules.
+///  5. The type of the integer is the smallest type that can hold the value while following the previous 4 rules.
 ///
 /// Refer to section 6.4.4.1 of ISO/IEC 9899:1999 for a helpful chart.
 /// 
@@ -180,7 +180,7 @@ named!(long_long_suffix(CompleteStr) -> CompleteStr, alt!(tag!("ll") | tag!("LL"
 mod test {
     use super::*;
     use crate::lexer::Lexer;
-    use crate::parser::ast::Integer;
+    use ast::Integer;
 
     #[test]
     fn small_decimal_integer_literal() {

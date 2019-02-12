@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Declaration {
     pub declaration_specifiers: DeclarationSpecifiers,
     pub init_declarator_list: Option<InitDeclaratorList>
@@ -51,12 +51,12 @@ pub enum DeclarationSpecifier {
     FunctionSpecifier(FunctionSpecifier)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FunctionSpecifier {
     Inline
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageClassSpecifier {
     Typedef,
     Extern,
@@ -65,7 +65,7 @@ pub enum StorageClassSpecifier {
     Register
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeQualifier {
     Const,
     Restrict,
@@ -83,9 +83,11 @@ pub enum TypeSpecifier {
     Double,
     Unsigned,
     Signed,
+    Bool,
+    //Complex, // not implemented
     StructOrUnionSpecifier(StructOrUnionSpecifier),
     EnumSpecifier(EnumSpecifier),
-    Typedef(String)
+    //Typedef(String)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,7 +96,7 @@ pub enum StructOrUnionSpecifier {
     Complete { kind: StructOrUnion, identifier: Option<String>, declaration_list: StructDeclarationList }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StructOrUnion {
     Struct,
     Union
