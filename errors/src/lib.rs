@@ -88,3 +88,28 @@ impl Display for MultipleStorageClassSpecifiersInDeclarationError {
 }
 
 impl Error for MultipleStorageClassSpecifiersInDeclarationError { }
+
+#[derive(Debug)]
+pub struct InvalidTypeSpecifierCombination {
+    declaration: Node<ast::Declaration>,
+    specifier: Node<ast::TypeSpecifier>,
+    incompatible_previous_specifier: ast::TypeSpecifier
+}
+
+impl InvalidTypeSpecifierCombination {
+    pub fn new(declaration: Node<ast::Declaration>, specifier: Node<ast::TypeSpecifier>, incompatible_previous_specifier: ast::TypeSpecifier) -> InvalidTypeSpecifierCombination {
+        InvalidTypeSpecifierCombination {
+            declaration,
+            specifier,
+            incompatible_previous_specifier
+        }
+    }
+}
+
+impl Display for InvalidTypeSpecifierCombination {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: error: {} type specifier incompatible with previous '{}' type specifier", self.specifier.start, self.specifier.value, self.incompatible_previous_specifier)
+    }
+}
+
+impl Error for InvalidTypeSpecifierCombination { }

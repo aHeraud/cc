@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -65,11 +67,34 @@ pub enum StorageClassSpecifier {
     Register
 }
 
+impl Display for StorageClassSpecifier {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use StorageClassSpecifier::*;
+        match self {
+            Typedef => write!(f, "typedef"),
+            Extern => write!(f, "extern"),
+            Static => write!(f, "static"),
+            Auto => write!(f, "auto"),
+            Register => write!(f, "register")
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeQualifier {
     Const,
     Restrict,
     Volatile
+}
+
+impl Display for TypeQualifier {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            TypeQualifier::Const => write!(f, "const"),
+            TypeQualifier::Restrict => write!(f, "restrict"),
+            TypeQualifier::Volatile => write!(f, "volatile")
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,6 +104,7 @@ pub enum TypeSpecifier {
     Short,
     Int,
     Long,
+    LongLong, // not part of the grammar, but useful elsewhere
     Float,
     Double,
     Unsigned,
@@ -87,7 +113,35 @@ pub enum TypeSpecifier {
     //Complex, // not implemented
     StructOrUnionSpecifier(StructOrUnionSpecifier),
     EnumSpecifier(EnumSpecifier),
-    //Typedef(String)
+    Typedef(String)
+}
+
+impl Display for TypeSpecifier {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use TypeSpecifier::*;
+        match self {
+            Void => write!(f, "void"),
+            Char => write!(f, "char"),
+            Short => write!(f, "short"),
+            Int => write!(f, "int"),
+            Long => write!(f, "long"),
+            LongLong => write!(f, "long long"),
+            Float => write!(f, "float"),
+            Double => write!(f, "double"),
+            Unsigned => write!(f, "unsigned"),
+            Signed => write!(f, "signed"),
+            Bool => write!(f, "_Bool"),
+            StructOrUnionSpecifier(spec) => match spec {
+                crate::StructOrUnionSpecifier::Partial { kind, identifier } => write!(f, "{} {}", kind, identifier),
+                crate::StructOrUnionSpecifier::Complete { kind, .. } => write!(f, "{}", kind) // TODO: display only struct/union tag, or entire declaration
+            },
+            EnumSpecifier(_spec) => {
+                // TODO: display only enum tag, or whole enum declaration?
+                write!(f, "enum")
+            },
+            Typedef(name) => write!(f, "{}", name)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,6 +154,15 @@ pub enum StructOrUnionSpecifier {
 pub enum StructOrUnion {
     Struct,
     Union
+}
+
+impl Display for StructOrUnion {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            StructOrUnion::Struct => write!(f, "struct"),
+            StructOrUnion::Union => write!(f, "union")
+        }
+    }
 }
 
 pub type StructDeclarationList = Vec<StructDeclaration>;

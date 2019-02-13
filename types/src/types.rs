@@ -1,6 +1,9 @@
 use std::convert::From;
 use std::default::Default;
 
+use ast::{Location, Node};
+use errors::InvalidTypeSpecifierCombination;
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct TypeQualifiers {
     pub constant: bool,
@@ -111,118 +114,120 @@ pub enum Type {
     Pointer(Box<QualifiedType>)
 }
 
-// FIXME: TODO: error handling
-// TODO: Better error messages
 // TODO: handle enum/struct declaration
 // TODO: get enum/struct ids from symbol table
 impl Type {
-    fn make_type<Iter: Iterator<Item = ast::TypeSpecifier>>(iter: Iter) -> Type {
+    fn make_type<Iter: Iterator<Item = Node<ast::TypeSpecifier>>>(iter: Iter, declaration: &Node<ast::Declaration>) -> Result<Type, InvalidTypeSpecifierCombination> {
         use ast::TypeSpecifier::*;
 
-        enum Float { Float, Double }
-        let mut void = false;
-        let mut char_ = false;
-        let mut short = false;
-        let mut long = false;
-        let mut long_long = false;
-        let mut int = false;
-        let mut float: Option<Float> = None;
-        let mut unsigned = false;
-        let mut signed = false;
-        let mut bool_ = false;
+        let mut void: Option<ast::TypeSpecifier> = None;
+        let mut char_: Option<ast::TypeSpecifier> = None;
+        let mut short: Option<ast::TypeSpecifier> = None;
+        let mut long: Option<ast::TypeSpecifier> = None;
+        let mut long_long: Option<ast::TypeSpecifier> = None;
+        let mut int: Option<ast::TypeSpecifier> = None;
+        let mut float: Option<ast::TypeSpecifier> = None;
+        let mut double: Option<ast::TypeSpecifier> = None;
+        let mut unsigned: Option<ast::TypeSpecifier> = None;
+        let mut signed: Option<ast::TypeSpecifier> = None;
+        let mut bool_: Option<ast::TypeSpecifier> = None;
+
+        macro_rules! check_compatability {
+            ( $declaration:ident, $item:ident, $specifiers_to_check:expr) => {
+                for specifier in $specifiers_to_check {
+                    if let Some(s) = specifier {
+                        let prev: ast::TypeSpecifier = ast::TypeSpecifier::clone(s);
+                        let err = InvalidTypeSpecifierCombination::new($declaration.clone(), $item.clone(), prev);
+                        return Err(err);
+                    }
+                }
+            };
+        }
 
         for item in iter {
-            match item {
+            match item.value {
                 Void => {
-                    if void {
-                        panic!("can't combine void specifier with previous void declaration specifier");
-                    }
-                    void = true;
+                    // can't combine void specifier with any others
+                    check_compatability!(declaration, item, &[&void, &char_, &short, &long, &long_long, &int, &float, &double, &unsigned, &signed, &bool_]);
+                    void = Some(item.value);
                 },
                 Char => {
-                    if void || short || long || float.is_some() {
-                        panic!("can't combine char specifier with previous declaration specifiers");
-                    }
-                    char_ = true;
+                    // char can only be combined with unsigned and signed specifiers
+                    check_compatability!(declaration, item, &[&void, &short, &long, &long_long, &float, &double, &int, &char_]);
+                    char_ = Some(item.value);
                 },
                 Short => {
-                    if void || char_ || long || float.is_some() {
-                        panic!("can't combine short specifier with previous declaration specifiers");
-                    }
+                    // 'short' can only be combined with itself, 'int', 'unsigned', and 'signed' type specifiers.
+                    check_compatability!(declaration, item, &[&void, &char_, &long, &long_long, &float, &double, &bool_]);
                     // TODO: warn if multiple short specifiers
-                    short = true;
+                    short = Some(item.value);
                 },
                 Int => {
-                    int = true;
+                    // 'int' can only be combined with 'short', 'long', 'long long', 'unsigned', and 'signed' type specifiers.
+                    check_compatability!(declaration, item, &[&void, &char_, &float, &double, &bool_]);
+                    int = Some(item.value);
                 },
                 Long => {
-                    if void || char_ || short || float.is_some() || bool_ {
-                        panic!("can't combine long specifier with previous declaration specifiers");
-                    }
-                    if long {
-                        long = false;
-                        long_long = true;
+                    // 'long' can only be combined with 'int', 'unsigned', 'signed', and 'double'.
+                    check_compatability!(declaration, item, &[&void, &char_, &short, &long_long, &float, &bool_]);
+                    if long.is_some() {
+                        long = None;
+                        // 'long long' is compatible with the same type specifiers as 'long' with the exception of 'double'.
+                        check_compatability!(declaration, item, &[&double]);
+                        long_long = Some(item.value);
                     }
                     else {
-                        long = true;
+                        long = Some(item.value);
                     }
                 },
                 Float => {
-                    if void || char_ || short || long || long_long || int || unsigned || signed || bool_ {
-                        panic!("can't combine float specifier with previous declaration specifiers");
-                    }
-                    float = Some(Float::Float);
+                    // 'float' can't be combined with any other type specifiers.
+                    check_compatability!(declaration, item, &[&void, &char_, &short, &long, &long_long, &int, &unsigned, &signed, &bool_, &float, &double]);
+                    float = Some(item.value);
                 },
                 Double => {
-                    if void || char_ || short || long_long || int || unsigned || signed || bool_ || float.is_some() {
-                        panic!("can't combine double specifier with previous declaration specifiers");
-                    }
-                    float = Some(Float::Double);
+                    // 'double' can only be combined with 'long'.
+                    check_compatability!(declaration, item, &[&void, &char_, &short, &long_long, &int, &unsigned, &signed, &bool_, &float, &double]);
+                    double = Some(item.value);
                 },
                 Unsigned => {
-                    if void || signed || bool_ || float.is_some() {
-                        panic!("can't combine unsigned specifier with previous declaration specifiers");
-                    }
-                    unsigned = true;
+                    // 'unsigned' can be combined with itself and the 'char', 'short', and 'int' type specifiers.
+                    check_compatability!(declaration, item, &[&void, &bool_, &signed, &float, &double]);
+                    unsigned = Some(item.value);
                 },
                 Signed => {
-                    if void || unsigned || bool_ || float.is_some() {
-                        panic!("can't combine signed specifier with previous declaration specifiers");
-                    }
-                    signed = true;
+                    // 'signed' can be combined with itself, and the 'char', 'short', and 'int' type specifiers.
+                    check_compatability!(declaration, item, &[&void, &bool_, &unsigned, &float, &double]);
+                    signed = Some(item.value);
                 },
                 Bool => {
-                    if void || unsigned || bool_ || signed || long || long_long || char_ || short || int || float.is_some() {
-                        panic!("can't combine _Bool specifier with previous declaration specifiers");
-                    }
-                    bool_ = true;
+                    // 'bool' can't be combined with any other type specifiers.
+                    check_compatability!(declaration, item, &[&void, &bool_, &char_, &unsigned, &signed, &int, &short, &long, &long_long, &float, &double]);
+                    bool_ = Some(item.value);
                 },
                 _ => unimplemented!() // structs/enums
             }
         }
 
-        if void {
+        let t = if void.is_some() {
             Type::Void
         }
-        else if let Some(float) = float {
-            let float_type = match float {
-                Float::Float => FloatType::Float,
-                Float::Double => {
-                    if long {
-                        FloatType::Double
-                    }
-                    else {
-                        FloatType::LongDouble
-                    }
-                }
-            };
-            Type::Float(float_type)
+        else if float.is_some() {
+            Type::Float(FloatType::Float)
         }
-        else if bool_ {
+        else if double.is_some() {
+            if long.is_some() {
+                Type::Float(FloatType::LongDouble)
+            }
+            else {
+                Type::Float(FloatType::Double)
+            }
+        }
+        else if bool_.is_some() {
             Type::Bool
         }
-        else if short {
-            let int_type = if unsigned {
+        else if short.is_some() {
+            let int_type = if unsigned.is_some() {
                 IntegerType::U16
             }
             else {
@@ -230,8 +235,8 @@ impl Type {
             };
             Type::Integer(int_type)
         }
-        else if char_ {
-            let char_type = if unsigned {
+        else if char_.is_some() {
+            let char_type = if unsigned.is_some() {
                 IntegerType::U8
             }
             else {
@@ -239,8 +244,8 @@ impl Type {
             };
             Type::Integer(char_type)
         }
-        else if long_long {
-            let int_type = if unsigned {
+        else if long_long.is_some() {
+            let int_type = if unsigned.is_some() {
                 IntegerType::U128
             }
             else {
@@ -248,8 +253,8 @@ impl Type {
             };
             Type::Integer(int_type)
         }
-        else if long {
-            let int_type = if unsigned {
+        else if long.is_some() {
+            let int_type = if unsigned.is_some() {
                 IntegerType::U64
             }
             else {
@@ -258,14 +263,16 @@ impl Type {
             Type::Integer(int_type)
         }
         else {
-            let int_type = if unsigned {
+            let int_type = if unsigned.is_some() {
                 IntegerType::U32
             }
             else {
                 IntegerType::I32
             };
             Type::Integer(int_type)
-        }
+        };
+
+        Ok(t)
     }
 }
 
