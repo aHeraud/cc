@@ -4,12 +4,12 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub struct Declaration {
-    pub declaration_specifiers: DeclarationSpecifiers,
-    pub init_declarator_list: Option<InitDeclaratorList>
+    pub declaration_specifiers: Node<DeclarationSpecifiers>,
+    pub init_declarator_list: InitDeclaratorList
 }
 
 impl Declaration {
-    pub fn new(declaration_specifiers: DeclarationSpecifiers, init_declarator_list: Option<InitDeclaratorList>) -> Declaration {
+    pub fn new(declaration_specifiers: Node<DeclarationSpecifiers>, init_declarator_list: InitDeclaratorList) -> Declaration {
         Declaration {
             declaration_specifiers,
             init_declarator_list
@@ -47,10 +47,10 @@ pub type DeclarationSpecifiers = Vec<DeclarationSpecifier>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeclarationSpecifier {
-    StorageClassSpecifier(StorageClassSpecifier),
-    TypeSpecifier(TypeSpecifier),
-    TypeQualifier(TypeQualifier),
-    FunctionSpecifier(FunctionSpecifier)
+    StorageClassSpecifier(Node<StorageClassSpecifier>),
+    TypeSpecifier(Node<TypeSpecifier>),
+    TypeQualifier(Node<TypeQualifier>),
+    FunctionSpecifier(Node<FunctionSpecifier>)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

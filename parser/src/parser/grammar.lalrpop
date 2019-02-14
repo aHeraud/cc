@@ -6,6 +6,7 @@ use ast::*;
 
 grammar<'input>();
 
+#[inline]
 Node<Rule>: Node<Rule> = <l: @L> <rule: Rule> <r: @R> => Node::new(rule, l, r);
 
 pub Constant: Constant = {
@@ -267,8 +268,8 @@ pub CompoundStatement: CompoundStatement = BlockScopeEnter <b:Node<BlockItem>+> 
 // ************ //
 
 pub Declaration: Declaration = {
-    <specifiers: DeclarationSpecifiers> <declarator_list:InitDeclaratorList?> ";" => {
-        Declaration::new(specifiers, declarator_list)
+    <specifiers: Node<DeclarationSpecifiers>> <declarator_list:InitDeclaratorList?> ";" => {
+        Declaration::new(specifiers, declarator_list.unwrap_or(Vec::new()))
     }
 };
 
@@ -318,10 +319,10 @@ TypeSpecifier: TypeSpecifier = {
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
 
 pub DeclarationSpecifier: DeclarationSpecifier = {
-    StorageClassSpecifier => DeclarationSpecifier::StorageClassSpecifier(<>),
-    TypeQualifier => DeclarationSpecifier::TypeQualifier(<>),
-    TypeSpecifier => DeclarationSpecifier::TypeSpecifier(<>),
-    FunctionSpecifier => DeclarationSpecifier::FunctionSpecifier(<>)
+    Node<StorageClassSpecifier> => DeclarationSpecifier::StorageClassSpecifier(<>),
+    Node<TypeQualifier> => DeclarationSpecifier::TypeQualifier(<>),
+    Node<TypeSpecifier> => DeclarationSpecifier::TypeSpecifier(<>),
+    Node<FunctionSpecifier> => DeclarationSpecifier::FunctionSpecifier(<>)
 };
 
 pub DeclarationSpecifiers: DeclarationSpecifiers = <d:DeclarationSpecifier+> => d;

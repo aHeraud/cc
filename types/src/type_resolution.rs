@@ -9,14 +9,14 @@ enum DeclaratorPartialType {
 }
 
 pub trait ResolveDeclarator {
-    fn resolve(&self, declaration_specifiers: QualifiedType) -> QualifiedType;
+    fn resolve(&self, initial_type: QualifiedType) -> (QualifiedType, Option<String>);
 }
 
 impl ResolveDeclarator for Declarator {
-    fn resolve(&self, decl_spec: QualifiedType) -> QualifiedType {
+    fn resolve(&self, initial_type: QualifiedType) -> (QualifiedType, Option<String>) {
         let mut identifier = None;
         let mut stack = self.build_stack(&mut identifier);
-        let mut t = decl_spec;
+        let mut t = initial_type;
 
         while let Some(partial_type) = stack.pop() {
             t = match partial_type {
@@ -30,14 +30,14 @@ impl ResolveDeclarator for Declarator {
                               Type::Array{ inner: Box::new(t), size })
                 },
                 DeclaratorPartialType::Function(param_list) => {
-                    panic!()
+                    panic!("function parameter list resolution unimplemented")
                     //QualifiedType::new(TypeQualifiers::default(),
                     //          Type::Function{ parameters: param_list, returns: Box::new(t) })
                 }
             };
         }
 
-        t
+        (t, identifier)
     }
 }
 

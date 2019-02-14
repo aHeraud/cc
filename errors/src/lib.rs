@@ -10,12 +10,16 @@ use ast::{Node, Location};
 #[derive(Debug)]
 pub enum CompilationError {
     TypedefRedefinition(TypedefRedefinitionError),
+    InvalidStorageClassSpecifierCombination(InvalidStorageClassSpecifierCombination),
+    InvalidTypeSpecifierCombination(InvalidTypeSpecifierCombination)
 }
 
 impl Display for CompilationError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            CompilationError::TypedefRedefinition(inner) => inner.fmt(f)
+            CompilationError::TypedefRedefinition(inner) => inner.fmt(f),
+            CompilationError::InvalidStorageClassSpecifierCombination(inner) => inner.fmt(f),
+            CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f)
         }
     }
 }
@@ -25,6 +29,18 @@ impl Error for CompilationError {}
 impl From<TypedefRedefinitionError> for CompilationError {
     fn from(error: TypedefRedefinitionError) -> Self {
         CompilationError::TypedefRedefinition(error)
+    }
+}
+
+impl From<InvalidStorageClassSpecifierCombination> for CompilationError {
+    fn from(error: InvalidStorageClassSpecifierCombination) -> Self {
+        CompilationError::InvalidStorageClassSpecifierCombination(error)
+    }
+}
+
+impl From<InvalidTypeSpecifierCombination> for CompilationError {
+    fn from(error: InvalidTypeSpecifierCombination) -> Self {
+        CompilationError::InvalidTypeSpecifierCombination(error)
     }
 }
 
@@ -91,15 +107,15 @@ impl Error for MultipleStorageClassSpecifiersInDeclarationError { }
 
 #[derive(Debug)]
 pub struct InvalidTypeSpecifierCombination {
-    declaration: Node<ast::Declaration>,
+    specifier_list: Node<ast::DeclarationSpecifiers>,
     specifier: Node<ast::TypeSpecifier>,
     incompatible_previous_specifier: ast::TypeSpecifier
 }
 
 impl InvalidTypeSpecifierCombination {
-    pub fn new(declaration: Node<ast::Declaration>, specifier: Node<ast::TypeSpecifier>, incompatible_previous_specifier: ast::TypeSpecifier) -> InvalidTypeSpecifierCombination {
+    pub fn new(specifier_list: Node<ast::DeclarationSpecifiers>, specifier: Node<ast::TypeSpecifier>, incompatible_previous_specifier: ast::TypeSpecifier) -> InvalidTypeSpecifierCombination {
         InvalidTypeSpecifierCombination {
-            declaration,
+            specifier_list,
             specifier,
             incompatible_previous_specifier
         }
@@ -113,3 +129,27 @@ impl Display for InvalidTypeSpecifierCombination {
 }
 
 impl Error for InvalidTypeSpecifierCombination { }
+
+
+#[derive(Debug)]
+pub struct InvalidStorageClassSpecifierCombination {
+    specifier_list: Node<ast::DeclarationSpecifiers>,
+    specifier: Node<ast::StorageClassSpecifier>,
+    incompatible_previous_specifier: ast::StorageClassSpecifier
+}
+
+impl InvalidStorageClassSpecifierCombination {
+    pub fn new(specifier_list: Node<ast::DeclarationSpecifiers>, specifier: Node<ast::StorageClassSpecifier>, incompatible_previous_specifier: ast::StorageClassSpecifier) -> InvalidStorageClassSpecifierCombination {
+        InvalidStorageClassSpecifierCombination {
+            specifier_list,
+            specifier,
+            incompatible_previous_specifier
+        }
+    }
+}
+
+impl Display for InvalidStorageClassSpecifierCombination {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: error: {} storage class specifier can't be combined with previous '{}' storage class specifier", self.specifier.start, self.specifier.value, self.incompatible_previous_specifier)
+    }
+}
