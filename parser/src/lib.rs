@@ -1,7 +1,13 @@
-#[macro_use] extern crate nom;
-#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate lalrpop_util;
+
 extern crate ast;
+extern crate lexer;
 extern crate types;
 
-pub mod lexer;
-pub mod parser;
+lalrpop_mod!(grammar);
+
+#[cfg(test)]
+mod tests;
+
+pub use self::grammar::TranslationUnitParser as Parser;
+pub use self::grammar::DeclarationParser;

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::lexer;
-use crate::lexer::Token;
+use lexer;
+use lexer::Token;
 use ast::*;
 
 grammar<'input>();

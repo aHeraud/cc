@@ -4,5 +4,6 @@ members = [
     "ast",
     "types",
     "errors",
+    "lexer",
     "parser"
 ]

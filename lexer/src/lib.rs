@@ -1,3 +1,6 @@
+#[macro_use] extern crate nom;
+#[macro_use] extern crate lazy_static;
+
 use std::ffi::OsString;
 use std::collections::HashSet;
 use std::rc::Rc;

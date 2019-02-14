@@ -1,7 +1,7 @@
 use nom::IResult;
 use nom::types::CompleteStr;
 
-use crate::lexer::Token;
+use crate::Token;
 use ast::Integer;
 
 #[derive(PartialEq, Eq)]
@@ -179,7 +179,7 @@ named!(long_long_suffix(CompleteStr) -> CompleteStr, alt!(tag!("ll") | tag!("LL"
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::lexer::Lexer;
+    use crate::Lexer;
     use ast::Integer;
 
     #[test]
