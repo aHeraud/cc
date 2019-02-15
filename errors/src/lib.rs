@@ -1,22 +1,28 @@
 extern crate ast;
+extern crate lexer;
+extern crate lalrpop_util;
 
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::error::Error;
 use std::convert::From;
 
+use lalrpop_util::ParseError;
+
 use ast::{Node, Location};
 
 #[derive(Debug)]
-pub enum CompilationError {
+pub enum CompilationError<'a> {
+    ParseError(ParseError<Location, lexer::Token<'a>, lexer::InvalidToken>),
     TypedefRedefinition(TypedefRedefinitionError),
     InvalidStorageClassSpecifierCombination(InvalidStorageClassSpecifierCombination),
     InvalidTypeSpecifierCombination(InvalidTypeSpecifierCombination)
 }
 
-impl Display for CompilationError {
+impl<'a> Display for CompilationError<'a> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            CompilationError::ParseError(inner) => write!(f, "syntax error"), //TODO: implement Display for token so we can display the parse error
             CompilationError::TypedefRedefinition(inner) => inner.fmt(f),
             CompilationError::InvalidStorageClassSpecifierCombination(inner) => inner.fmt(f),
             CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f)
@@ -24,21 +30,27 @@ impl Display for CompilationError {
     }
 }
 
-impl Error for CompilationError {}
+impl<'a> Error for CompilationError<'a> {}
 
-impl From<TypedefRedefinitionError> for CompilationError {
+impl<'a> From<ParseError<Location, lexer::Token<'a>, lexer::InvalidToken>> for CompilationError<'a> {
+    fn from(error: ParseError<Location, lexer::Token<'a>, lexer::InvalidToken>) -> Self {
+        CompilationError::ParseError(error)
+    }
+}
+
+impl<'a> From<TypedefRedefinitionError> for CompilationError<'a> {
     fn from(error: TypedefRedefinitionError) -> Self {
         CompilationError::TypedefRedefinition(error)
     }
 }
 
-impl From<InvalidStorageClassSpecifierCombination> for CompilationError {
+impl<'a> From<InvalidStorageClassSpecifierCombination> for CompilationError<'a> {
     fn from(error: InvalidStorageClassSpecifierCombination) -> Self {
         CompilationError::InvalidStorageClassSpecifierCombination(error)
     }
 }
 
-impl From<InvalidTypeSpecifierCombination> for CompilationError {
+impl<'a> From<InvalidTypeSpecifierCombination> for CompilationError<'a> {
     fn from(error: InvalidTypeSpecifierCombination) -> Self {
         CompilationError::InvalidTypeSpecifierCombination(error)
     }

@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 ast = { path = "../ast" }
+lexer = { path = "../lexer" }
+lalrpop-util = "0.16.3"
