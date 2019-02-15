@@ -1,0 +1,10 @@
+[package]
+name = "lexer"
+version = "0.1.0"
+authors = ["Achille Heraud <achille@heraud.xyz>"]
+edition = "2018"
+
+[dependencies]
+ast = { path = "../ast" }
+lazy_static = "1.2.0"
+nom = "4.1.1"
