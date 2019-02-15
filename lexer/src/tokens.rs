@@ -1,5 +1,8 @@
 use ast::Integer;
 
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token<'a> {
     /* punctuation */
@@ -105,4 +108,108 @@ pub enum Token<'a> {
     FloatLiteral(&'a str),
 
     StringLiteral{ wide: bool, contents: &'a str }
+}
+
+
+impl<'a> Display for Token<'a> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use Token::*;
+        let s = match self {
+            LParen => "(",
+            RParen => ")",
+            LBrace => "{",
+            RBrace => "}",
+            LBracket => "[",
+            RBracket => "]",
+            Semicolon => ";",
+            Comma => ",",
+            Star => "*",
+            Ellipsis => "...",
+            Dot => ".",
+            Arrow => "->",
+            Increment => "++",
+            Decrement => "--",
+            Ampersand => "&",
+            Plus => "+",
+            Minus => "-",
+            Tilde => "~",
+            Exclamation => "!",
+            Slash => "/",
+            Colon => ":",
+            Question => "?",
+            Modulo => "%",
+            Shl => "<<",
+            Shr => ">>",
+            LessThan => "<",
+            GreaterThan => ">",
+            LessThanOrEqualTo => "<=",
+            GreaterThanOrEqualTo => ">=",
+            Equality => "==",
+            NotEqual => "!=",
+            Caret => "^",
+            VerticalBar => "|",
+            AndAnd => "&&",
+            OrOr => "||",
+            Equal => "=",
+            MultEq => "*=",
+            DivEq => "/=",
+            ModEq => "%=",
+            PlusEq => "+=",
+            MinusEq => "-=",
+            ShlEq => "<<=",
+            ShrEq => ">>=",
+            AndEq => "&=",
+            XorEq => "^=",
+            OrEq => "|=",
+            Goto => "goto",
+            Continue => "continue",
+            Break => "break",
+            Return => "return",
+            If => "if",
+            Else => "else",
+            Switch => "switch",
+            Case => "case",
+            Default => "default",
+            While => "while",
+            Do => "do",
+            For => "for",
+            Inline => "inline",
+            Typedef => "typedef",
+            Extern => "extern",
+            Static => "static",
+            Auto => "auto",
+            Register => "register",
+            Const => "const",
+            Restrict => "restrict",
+            Volatile => "volatile",
+            Struct => "struct",
+            Union => "union",
+            Enum => "enum",
+            Void => "void",
+            Char => "char",
+            Short => "short",
+            Int => "int",
+            Long => "long",
+            Float => "float",
+            Double => "double",
+            Signed => "signed",
+            Unsigned => "unsigned",
+            SizeOf => "sizeof",
+            Bool => "_Bool",
+            Complex => "_Complex",
+            Identifier(ident) => ident,
+            TypedefType(name) => name,
+            IntLiteral(i) => return i.fmt(f),
+            FloatLiteral(s) => s,
+            StringLiteral{ wide, contents } => {
+                if *wide {
+                    return write!(f, "L\"{}\"", contents);
+                }
+                else {
+                    return write!(f, "\"{}\"", contents);
+                }
+            }
+        };
+        write!(f, "{}", s)
+    }
 }

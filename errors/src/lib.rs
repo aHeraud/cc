@@ -22,7 +22,7 @@ pub enum CompilationError<'a> {
 impl<'a> Display for CompilationError<'a> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            CompilationError::ParseError(inner) => write!(f, "syntax error"), //TODO: implement Display for token so we can display the parse error
+            CompilationError::ParseError(inner) => inner.fmt(f),
             CompilationError::TypedefRedefinition(inner) => inner.fmt(f),
             CompilationError::InvalidStorageClassSpecifierCombination(inner) => inner.fmt(f),
             CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f)

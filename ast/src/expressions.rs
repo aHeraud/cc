@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
 use crate::{Node, TypeName, InitializerList};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +20,24 @@ pub enum Integer {
     I64(i64),
     U128(u128),
     I128(i128)
+}
+
+impl Display for Integer {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use Integer::*;
+        match self {
+            U8(v) => write!(f, "{}", v),
+            I8(v) => write!(f, "{}", v),
+            U16(v) => write!(f, "{}", v),
+            I16(v) => write!(f, "{}", v),
+            U32(v) => write!(f, "{}", v),
+            I32(v) => write!(f, "{}", v),
+            U64(v) => write!(f, "{}", v),
+            I64(v) => write!(f, "{}", v),
+            U128(v) => write!(f, "{}", v),
+            I128(v) => write!(f, "{}", v),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
