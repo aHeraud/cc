@@ -16,7 +16,10 @@ pub enum CompilationError<'a> {
     ParseError(ParseError<Location, lexer::Token<'a>, lexer::InvalidToken>),
     TypedefRedefinition(TypedefRedefinitionError),
     InvalidStorageClassSpecifierCombination(InvalidStorageClassSpecifierCombination),
-    InvalidTypeSpecifierCombination(InvalidTypeSpecifierCombination)
+    InvalidTypeSpecifierCombination(InvalidTypeSpecifierCombination),
+    BitFieldSizeExceedsTypeWidth(BitFieldSizeExceedsTypeWidth),
+    DuplicateStructMember(DuplicateStructMember),
+    NonIntegralBitfieldType(NonIntegralBitfieldType)
 }
 
 impl<'a> Display for CompilationError<'a> {
@@ -25,7 +28,10 @@ impl<'a> Display for CompilationError<'a> {
             CompilationError::ParseError(inner) => inner.fmt(f),
             CompilationError::TypedefRedefinition(inner) => inner.fmt(f),
             CompilationError::InvalidStorageClassSpecifierCombination(inner) => inner.fmt(f),
-            CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f)
+            CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f),
+            CompilationError::BitFieldSizeExceedsTypeWidth(inner) => inner.fmt(f),
+            CompilationError::DuplicateStructMember(inner) => inner.fmt(f),
+            CompilationError::NonIntegralBitfieldType(inner) => inner.fmt(f)
         }
     }
 }
@@ -53,6 +59,24 @@ impl<'a> From<InvalidStorageClassSpecifierCombination> for CompilationError<'a> 
 impl<'a> From<InvalidTypeSpecifierCombination> for CompilationError<'a> {
     fn from(error: InvalidTypeSpecifierCombination) -> Self {
         CompilationError::InvalidTypeSpecifierCombination(error)
+    }
+}
+
+impl<'a> From<BitFieldSizeExceedsTypeWidth> for CompilationError<'a> {
+    fn from(error: BitFieldSizeExceedsTypeWidth) -> Self {
+        CompilationError::BitFieldSizeExceedsTypeWidth(error)
+    }
+}
+
+impl<'a> From<DuplicateStructMember> for CompilationError<'a> {
+    fn from(error: DuplicateStructMember) -> Self {
+        CompilationError::DuplicateStructMember(error)
+    }
+}
+
+impl<'a> From<NonIntegralBitfieldType> for CompilationError<'a> {
+    fn from(error: NonIntegralBitfieldType) -> Self {
+        CompilationError::NonIntegralBitfieldType(error)
     }
 }
 
@@ -165,3 +189,74 @@ impl Display for InvalidStorageClassSpecifierCombination {
         write!(f, "{}: error: {} storage class specifier can't be combined with previous '{}' storage class specifier", self.specifier.start, self.specifier.value, self.incompatible_previous_specifier)
     }
 }
+
+#[derive(Debug)]
+pub struct BitFieldSizeExceedsTypeWidth {
+    location: (Location, Location),
+    field_name: String,
+    size: usize,
+    type_width: usize
+}
+
+impl BitFieldSizeExceedsTypeWidth {
+    pub fn new(location: (Location, Location), field_name: String, size: usize, type_width: usize) -> BitFieldSizeExceedsTypeWidth {
+        BitFieldSizeExceedsTypeWidth {
+            location,
+            field_name,
+            size,
+            type_width
+        }
+    }
+}
+
+impl Display for BitFieldSizeExceedsTypeWidth {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: error: width of bit field '{}' ({} bits) exceeds width of the containing type ({})", self.location.0, self.field_name, self.size, self.type_width)
+    }
+}
+
+impl Error for BitFieldSizeExceedsTypeWidth {}
+
+#[derive(Debug)]
+pub struct DuplicateStructMember {
+    location: (Location, Location),
+    field_name: String
+}
+
+impl DuplicateStructMember {
+    pub fn new(location: (Location, Location), field_name: String) -> DuplicateStructMember {
+        DuplicateStructMember {
+            location,
+            field_name
+        }
+    }
+}
+
+impl Display for DuplicateStructMember {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: error: duplicate field '{}'", self.location.0, self.field_name)
+    }
+}
+
+#[derive(Debug)]
+pub struct NonIntegralBitfieldType {
+    location: (Location, Location),
+    field_name: String
+}
+
+impl NonIntegralBitfieldType {
+    pub fn new(location: (Location, Location), field_name: String) -> NonIntegralBitfieldType {
+        NonIntegralBitfieldType {
+            location,
+            field_name
+        }
+    }
+}
+
+impl Display for NonIntegralBitfieldType {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}, error: bit field '{}' has non integral type", self.location.0, self.field_name)
+    }
+}
+
+impl Error for NonIntegralBitfieldType {}

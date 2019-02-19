@@ -3,6 +3,7 @@ use std::default::Default;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
+use crate::StructID;
 use ast::{Location, Node};
 use errors::{InvalidTypeSpecifierCombination, InvalidStorageClassSpecifierCombination};
 
@@ -187,7 +188,6 @@ impl Display for QualifiedType {
 #[derive(Debug, Clone)]
 pub enum Type {
     Void,
-    Bool,
     Integer(IntegerType),
     Float(FloatType),
     Struct(StructID),
@@ -203,7 +203,6 @@ impl Display for Type {
         use Type::*;
         match self {
             Void => write!(f, "void"),
-            Bool => write!(f, "_Bool"),
             Integer(int) => write!(f, "{}", int),
             Float(float) => write!(f, "{}", float),
             Struct(_) => write!(f, "struct"), // TODO: how should this be displayed?
@@ -333,7 +332,7 @@ impl Type {
             }
         }
         else if bool_.is_some() {
-            Type::Bool
+            Type::Integer(IntegerType::Bool)
         }
         else if short.is_some() {
             let int_type = if unsigned.is_some() {
@@ -387,6 +386,7 @@ impl Type {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum IntegerType {
+    Bool,
     U8,
     I8,
     U16,
@@ -399,10 +399,25 @@ pub enum IntegerType {
     I128
 }
 
+impl IntegerType {
+    pub fn bits(&self) -> usize {
+        use IntegerType::*;
+        match self {
+            Bool => 1,
+            U8 | I8 => 8,
+            U16 | I16 => 16,
+            U32 | I32 => 32,
+            U64 | I64 => 64,
+            U128 | I128 => 128
+        }
+    }
+}
+
 impl Display for IntegerType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         use IntegerType::*;
         let s = match self {
+            Bool => "_Bool",
             U8 => "unsigned char",
             I8 => "char",
             U16 => "unsigned short int",
@@ -436,13 +451,9 @@ impl Display for FloatType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StructID(i32);
-
-// TODO
-pub struct Struct {
-    name: String,
-    id: StructID
+pub enum StructField {
+    Bitfield{ size: usize },
+    Field { type_: Type }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
