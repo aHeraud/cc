@@ -249,7 +249,7 @@ pub enum ParameterDeclarator {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterDeclaration {
-    pub declaration_specifier_list: DeclarationSpecifiers,
+    pub declaration_specifier_list: Node<DeclarationSpecifiers>,
     pub declarator: ParameterDeclarator
 }
 

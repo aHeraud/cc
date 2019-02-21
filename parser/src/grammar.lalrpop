@@ -457,8 +457,8 @@ pub ParameterList: ParameterList = {
 };
 
 pub ParameterDeclaration: ParameterDeclaration = {
-    <s:DeclarationSpecifiers> <d:Declarator> => ParameterDeclaration { declaration_specifier_list: s, declarator: ParameterDeclarator::Declarator(Box::new(d)) },
-    <s: DeclarationSpecifiers> <d:AbstractDeclarator?> => ParameterDeclaration { declaration_specifier_list: s, declarator:  ParameterDeclarator::AbstractDeclarator(d.map(|v| Box::new(v))) }
+    <s:Node<DeclarationSpecifiers>> <d:Declarator> => ParameterDeclaration { declaration_specifier_list: s, declarator: ParameterDeclarator::Declarator(Box::new(d)) },
+    <s: Node<DeclarationSpecifiers>> <d:AbstractDeclarator?> => ParameterDeclaration { declaration_specifier_list: s, declarator:  ParameterDeclarator::AbstractDeclarator(d.map(|v| Box::new(v))) }
 };
 
 pub AbstractDeclarator: AbstractDeclarator = {

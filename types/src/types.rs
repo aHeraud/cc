@@ -185,6 +185,24 @@ impl Display for QualifiedType {
     }
 }
 
+struct DisplayVec<'a, T: Display>(&'a Vec<T>);
+
+// TODO: put this somewhere else
+impl<'a, T: Display> Display for DisplayVec<'a, T> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut s = String::new();
+        let mut iter = self.0.iter();
+        if let Some(t) = iter.next() {
+            s.push_str(&format!("{}", t));
+        }
+        for t in iter {
+            s.push_str(", ");
+            s.push_str(&format!("{}", t));
+        }
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Type {
     Void,
@@ -208,7 +226,14 @@ impl Display for Type {
             Struct(_) => write!(f, "struct"), // TODO: how should this be displayed?
             Union(_) => write!(f, "union"), // TODO: how should this be displayed?
             Enum(_) => write!(f, "enum"), // TODO: how should this be displayed?
-            Function { parameters, variadic, returns }  => unimplemented!(), // TODO: functions
+            Function { parameters, variadic, returns }  => {
+                if *variadic {
+                    write!(f, "fn({}, ...) -> {}", DisplayVec(&parameters), returns)
+                }
+                else {
+                    write!(f, "fn({}) -> {}", DisplayVec(&parameters), returns)
+                }
+            },
             Array { inner, size } => write!(f, "array of {}", inner), // TODO: implement display for size
             Pointer(inner) => write!(f, "pointer to {}", inner)
         }
