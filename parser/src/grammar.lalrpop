@@ -9,7 +9,7 @@ grammar<'input>();
 #[inline]
 Node<Rule>: Node<Rule> = <l: @L> <rule: Rule> <r: @R> => Node::new(rule, l, r);
 
-pub Constant: Constant = {
+Constant: Constant = {
     <c:IntLiteral> => Constant::Integer(c)
 };
 
@@ -17,14 +17,14 @@ pub Constant: Constant = {
 // Expressions //
 // *********** //
 
-pub PrimaryExpression: PrimaryExpression = {
+PrimaryExpression: PrimaryExpression = {
     Ident => PrimaryExpression::Identifier(<>.into()),
     Constant => PrimaryExpression::Constant(<>),
     <s:StringLiteral> => PrimaryExpression::StringLiteral{ wide: s.0, contents: s.1.into() },
     "(" <e:Expression> ")" => PrimaryExpression::Parens(Box::new(e))
 };
 
-pub PostfixExpression: PostfixExpression = {
+PostfixExpression: PostfixExpression = {
     <p:PrimaryExpression> => vec![PostfixExpressionPart::PrimaryExpression(p)],
     <v:PostfixExpression> "[" <e:Expression> "]" => {
         let mut v = v;
@@ -59,7 +59,7 @@ pub PostfixExpression: PostfixExpression = {
     "(" <t:TypeName> ")" "{" <l:InitializerList> ","? "}" => vec![PostfixExpressionPart::TypeInitializerList { type_name: t, initializer_list: l }]
 };
 
-pub ArgumentExpressionList: ArgumentExpressionList = {
+ArgumentExpressionList: ArgumentExpressionList = {
     <a:Node<AssignmentExpression>> => vec![a],
     <v:ArgumentExpressionList> "," <a:Node<AssignmentExpression>> => {
         let mut v = v;
@@ -68,7 +68,7 @@ pub ArgumentExpressionList: ArgumentExpressionList = {
     }
 };
 
-pub UnaryExpression: UnaryExpression = {
+UnaryExpression: UnaryExpression = {
     <p:PostfixExpression> => UnaryExpression::PostfixExpression(p),
     "++" <u:UnaryExpression> => UnaryExpression::Increment(Box::new(u)),
     "--" <u:UnaryExpression> => UnaryExpression::Decrement(Box::new(u)),
@@ -77,7 +77,7 @@ pub UnaryExpression: UnaryExpression = {
     "sizeof" "(" <t:TypeName> ")" => UnaryExpression::SizeOfType(t)
 }
 
-pub UnaryOperator: UnaryOperator = {
+UnaryOperator: UnaryOperator = {
     "&" => UnaryOperator::AddressOf,
     "*" => UnaryOperator::Indirection,
     "+" => UnaryOperator::Plus,
@@ -86,31 +86,31 @@ pub UnaryOperator: UnaryOperator = {
     "!" => UnaryOperator::LogicalNot
 };
 
-pub CastExpression: CastExpression = {
+CastExpression: CastExpression = {
     <u:UnaryExpression> => CastExpression::UnaryExpression(Box::new(u)),
     "(" <t:TypeName> ")" <c:CastExpression> => CastExpression::Cast{ type_name: t, cast_expression: Box::new(c) }
 };
 
-pub MultiplicativeExpression: MultiplicativeExpression = {
+MultiplicativeExpression: MultiplicativeExpression = {
     <c:CastExpression> => MultiplicativeExpression::CastExpression(Box::new(c)),
     <m:MultiplicativeExpression> "*" <c:CastExpression> => MultiplicativeExpression::Mult((Box::new(m), Box::new(c))),
     <m:MultiplicativeExpression> "/" <c:CastExpression> => MultiplicativeExpression::Div((Box::new(m), Box::new(c))),
     <m:MultiplicativeExpression> "%" <c:CastExpression> => MultiplicativeExpression::Mod((Box::new(m), Box::new(c)))
 };
 
-pub AdditiveExpression: AdditiveExpression = {
+AdditiveExpression: AdditiveExpression = {
     <m:MultiplicativeExpression> => AdditiveExpression::MultiplicativeExpression(Box::new(m)),
     <a:AdditiveExpression> "+" <m:MultiplicativeExpression> => AdditiveExpression::Add((Box::new(a), Box::new(m))),
     <a:AdditiveExpression> "-" <m:MultiplicativeExpression> => AdditiveExpression::Sub((Box::new(a), Box::new(m)))
 };
 
-pub ShiftExpression: ShiftExpression = {
+ShiftExpression: ShiftExpression = {
     <a:AdditiveExpression> => ShiftExpression::AdditiveExpression(Box::new(a)),
     <s:ShiftExpression> "<<" <a:AdditiveExpression> => ShiftExpression::Shl((Box::new(s), Box::new(a))),
     <s:ShiftExpression> ">>" <a:AdditiveExpression> => ShiftExpression::Shr((Box::new(s), Box::new(a)))
 };
 
-pub RelationalExpression: RelationalExpression = {
+RelationalExpression: RelationalExpression = {
     <s:ShiftExpression> => RelationalExpression::ShiftExpression(Box::new(s)),
     <r:RelationalExpression> "<" <s:ShiftExpression> => RelationalExpression::LessThan((Box::new(r), Box::new(s))),
     <r:RelationalExpression> ">" <s:ShiftExpression> => RelationalExpression::GreaterThan((Box::new(r), Box::new(s))),
@@ -118,38 +118,38 @@ pub RelationalExpression: RelationalExpression = {
     <r:RelationalExpression> ">=" <s:ShiftExpression> => RelationalExpression::GreaterThanOrEqualTo((Box::new(r), Box::new(s))),
 };
 
-pub EqualityExpression: EqualityExpression = {
+EqualityExpression: EqualityExpression = {
     <r:RelationalExpression> => EqualityExpression::RelationalExpression(Box::new(r)),
     <e:EqualityExpression> "==" <r:RelationalExpression> => EqualityExpression::Equals((Box::new(e), Box::new(r))),
     <e:EqualityExpression> "!=" <r:RelationalExpression> => EqualityExpression::NotEquals((Box::new(e), Box::new(r)))
 };
 
-pub AndExpression: AndExpression = {
+AndExpression: AndExpression = {
     <e:EqualityExpression> => AndExpression::EqualityExpression(Box::new(e)),
     <a:AndExpression> "&" <e:EqualityExpression> => AndExpression::And((Box::new(a), Box::new(e)))
 };
 
-pub XorExpression: XorExpression = {
+XorExpression: XorExpression = {
     AndExpression => XorExpression::AndExpression(Box::new(<>)),
     <x:XorExpression> "^" <a:AndExpression> => XorExpression::Xor((Box::new(x), Box::new(a)))
 };
 
-pub OrExpression: OrExpression = {
+OrExpression: OrExpression = {
     XorExpression => OrExpression::XorExpression(Box::new(<>)),
     <o:OrExpression> "|" <x:XorExpression> => OrExpression::Or((Box::new(o), Box::new(x)))
 };
 
-pub LogicalAndExpression: LogicalAndExpression = {
+LogicalAndExpression: LogicalAndExpression = {
     OrExpression => LogicalAndExpression::OrExpression(Box::new(<>)),
     <a:LogicalAndExpression> "&&" <o:OrExpression> => LogicalAndExpression::LogicalAnd((Box::new(a), Box::new(o)))
 };
 
-pub LogicalOrExpression: LogicalOrExpression = {
+LogicalOrExpression: LogicalOrExpression = {
     LogicalAndExpression  => LogicalOrExpression::LogicalAndExpression(Box::new(<>)),
     <o:LogicalOrExpression> "||" <a:LogicalAndExpression> => LogicalOrExpression::LogicalOr((Box::new(o), Box::new(a)))
 };
 
-pub ConditionalExpression: ConditionalExpression = {
+ConditionalExpression: ConditionalExpression = {
     LogicalOrExpression => ConditionalExpression::LogicalOrExpression(Box::new(<>)),
     <o:LogicalOrExpression> "?" <e:Expression> ":" <c:ConditionalExpression> => {
         ConditionalExpression::ConditionalExpression { 
@@ -160,7 +160,7 @@ pub ConditionalExpression: ConditionalExpression = {
     }
 }
 
-pub AssignmentExpression: AssignmentExpression = {
+AssignmentExpression: AssignmentExpression = {
     ConditionalExpression => AssignmentExpression::ConditionalExpression(Box::new(<>)),
     <u:UnaryExpression> <op:AssignmentOperator> <e:AssignmentExpression> => {
         AssignmentExpression::Assignment {
@@ -171,7 +171,7 @@ pub AssignmentExpression: AssignmentExpression = {
     }
 };
 
-pub AssignmentOperator: AssignmentOperator = {
+AssignmentOperator: AssignmentOperator = {
     "=" => AssignmentOperator::Eq,
     "*=" => AssignmentOperator::MultEq,
     "/=" => AssignmentOperator::DivEq,
@@ -185,7 +185,7 @@ pub AssignmentOperator: AssignmentOperator = {
     "|=" => AssignmentOperator::OrEq
 };
 
-pub Expression: Expression = {
+Expression: Expression = {
     AssignmentExpression => vec![<>],
     <e:Expression> "," <a:AssignmentExpression> => {
         let mut v = e;
@@ -194,13 +194,13 @@ pub Expression: Expression = {
     }
 }
 
-pub ConstantExpression: ConstantExpression = <c:ConditionalExpression> => ConstantExpression(c);
+ConstantExpression: ConstantExpression = <c:ConditionalExpression> => ConstantExpression(c);
 
 // ********** //
 // Statements //
 // ********** //
 
-pub Statement = StatementRestricted<"I">;
+Statement = StatementRestricted<"I">;
 
 StatementRestricted<I>: Statement = {
     <s:LabeledStatement<I>> => Statement::Labeled(s),
@@ -211,7 +211,7 @@ StatementRestricted<I>: Statement = {
     <s:JumpStatement> => Statement::Jump(s),
 };
 
-pub JumpStatement: JumpStatement = {
+JumpStatement: JumpStatement = {
     "goto" <i:Ident> ";" => JumpStatement::Goto(i.into()),
     "continue" ";" => JumpStatement::Continue,
     "break" ";" => JumpStatement::Break,
@@ -243,7 +243,7 @@ IterationStatement<I>: IterationStatement = {
     "for" "(" <dec:Node<Declaration>> <cond:Node<Expression>?> ";" <expr3: Node<Expression>?> ")" <body:Node<StatementRestricted<I>>> => IterationStatement::ForB{ clause1: dec, condition: cond, expr3: expr3, body: Box::new(body) } 
 };
 
-pub BlockItem: BlockItem = {
+BlockItem: BlockItem = {
     <s:Statement> => BlockItem::Statement(Box::new(s)),
     <d:Declaration> => {
         BlockItem::Declaration(d)
@@ -260,7 +260,7 @@ BlockScopeLeave: () = "}" => {
     ()
 };
 
-pub CompoundStatement: CompoundStatement = BlockScopeEnter <b:Node<BlockItem>+> BlockScopeLeave => b;
+CompoundStatement: CompoundStatement = BlockScopeEnter <b:Node<BlockItem>+> BlockScopeLeave => b;
 
 
 // ************ //
@@ -273,7 +273,7 @@ pub Declaration: Declaration = {
     }
 };
 
-pub InitDeclaratorList: InitDeclaratorList = {
+InitDeclaratorList: InitDeclaratorList = {
     <v:InitDeclaratorList> "," <d:InitDeclarator> => {
         let mut v = v;
         v.push(d);
@@ -282,7 +282,7 @@ pub InitDeclaratorList: InitDeclaratorList = {
     InitDeclarator => vec![<>]
 };
 
-pub InitDeclarator: InitDeclarator = {
+InitDeclarator: InitDeclarator = {
     <d:Declarator> => InitDeclarator { declarator: d, initializer: None },
     <d:Declarator> "=" <i:Initializer> => InitDeclarator { declarator: d, initializer: Some(i) }
 };
@@ -318,16 +318,16 @@ TypeSpecifier: TypeSpecifier = {
 
 FunctionSpecifier: FunctionSpecifier = "inline" => FunctionSpecifier::Inline;
 
-pub DeclarationSpecifier: DeclarationSpecifier = {
+DeclarationSpecifier: DeclarationSpecifier = {
     Node<StorageClassSpecifier> => DeclarationSpecifier::StorageClassSpecifier(<>),
     Node<TypeQualifier> => DeclarationSpecifier::TypeQualifier(<>),
     Node<TypeSpecifier> => DeclarationSpecifier::TypeSpecifier(<>),
     Node<FunctionSpecifier> => DeclarationSpecifier::FunctionSpecifier(<>)
 };
 
-pub DeclarationSpecifiers: DeclarationSpecifiers = <d:DeclarationSpecifier+> => d;
+DeclarationSpecifiers: DeclarationSpecifiers = <d:DeclarationSpecifier+> => d;
 
-pub StructOrUnionSpecifier: StructOrUnionSpecifier = {
+StructOrUnionSpecifier: StructOrUnionSpecifier = {
     <s:StructOrUnion> <i:Ident?> "{" <decl:StructDeclarationList> "}" => StructOrUnionSpecifier::Complete { 
         kind: s, identifier: i.map(|s| s.into()), declaration_list: decl
     },
@@ -336,27 +336,27 @@ pub StructOrUnionSpecifier: StructOrUnionSpecifier = {
     }
 };
 
-pub StructOrUnion: StructOrUnion = {
+StructOrUnion: StructOrUnion = {
     "struct" => StructOrUnion::Struct,
     "union" => StructOrUnion::Union
 };
 
-pub SpecifierQualifierList: SpecifierQualifierList = <e:SpecifierQualifier+> => e;
+SpecifierQualifierList: SpecifierQualifierList = <e:SpecifierQualifier+> => e;
 
 SpecifierQualifier: SpecifierQualifier = {
     <t:TypeSpecifier> => SpecifierQualifier::TypeSpecifier(t),
     <q:TypeQualifier> => SpecifierQualifier::TypeQualifier(q)
 };
 
-pub TypeName: TypeName = {
+TypeName: TypeName = {
     <list:SpecifierQualifierList> <dec:AbstractDeclarator?> => TypeName::new(list, dec)
 };
 
-pub StructDeclarationList: StructDeclarationList = <l:StructDeclaration+> => l;
+StructDeclarationList: StructDeclarationList = <l:StructDeclaration+> => l;
 
-pub StructDeclaration: StructDeclaration = <sp:SpecifierQualifierList> <sd: StructDeclaratorList> ";" => StructDeclaration::new(sp, sd);
+StructDeclaration: StructDeclaration = <sp:SpecifierQualifierList> <sd: StructDeclaratorList> ";" => StructDeclaration::new(sp, sd);
 
-pub StructDeclaratorList: StructDeclaratorList = {
+StructDeclaratorList: StructDeclaratorList = {
     <v:StructDeclaratorList> "," <s:StructDeclarator> => {
         let mut v = v;
         v.push(s);
@@ -365,17 +365,17 @@ pub StructDeclaratorList: StructDeclaratorList = {
     StructDeclarator => vec![<>]
 };
 
-pub StructDeclarator: StructDeclarator = {
+StructDeclarator: StructDeclarator = {
     <d:Declarator> => StructDeclarator::Field(d),
     <d:Declarator?> ":" <c:ConstantExpression> => StructDeclarator::BitField(d, c)
 };
 
-pub EnumSpecifier: EnumSpecifier = {
+EnumSpecifier: EnumSpecifier = {
     "enum" <i:Ident?> "{" <l:EnumeratorList> ","? "}" => EnumSpecifier::Complete{ identifier: i.map(|v| v.into()), enumerator_list: l },
     "enum" <i:Ident> => EnumSpecifier::Partial{ identifier: i.into() }
 };
 
-pub EnumeratorList: EnumeratorList = {
+EnumeratorList: EnumeratorList = {
     <v:EnumeratorList> "," <e:Enumerator> => {
         let mut v = v;
         v.push(e);
@@ -384,12 +384,12 @@ pub EnumeratorList: EnumeratorList = {
     <e:Enumerator> => vec![e]
 };
 
-pub Enumerator: Enumerator = {
+Enumerator: Enumerator = {
     <i:Ident> => Enumerator { identifier: i.into(), value: None },
     <i:Ident> "=" <c:ConstantExpression> => Enumerator { identifier: i.into(), value: Some(c) }
 };
 
-pub Declarator: Declarator = {
+Declarator: Declarator = {
     <ptr:Pointer?> <d:DirectDeclarator> => {
         Declarator {
             pointer: ptr,
@@ -398,7 +398,7 @@ pub Declarator: Declarator = {
     }
 }
 
-pub DirectDeclarator: DirectDeclarator = {
+DirectDeclarator: DirectDeclarator = {
     <i:Ident> => vec![DirectDeclaratorPart::Identifier(i.into())],
     "(" <d:Declarator> ")" => vec![DirectDeclaratorPart::Parens(Box::new(d))],
     <v:DirectDeclarator> "[" <_q:TypeQualifier+?> <expr:AssignmentExpression?> "]" => {
@@ -433,7 +433,7 @@ pub DirectDeclarator: DirectDeclarator = {
     }
 };
 
-pub IdentifierList: IdentifierList = {
+IdentifierList: IdentifierList = {
     <v:IdentifierList> "," <i:Ident> => {
         let mut v = v;
         v.push(i.into());
@@ -442,12 +442,12 @@ pub IdentifierList: IdentifierList = {
     <i:Ident> => vec![i.into()]
 };
 
-pub ParameterTypeList: ParameterTypeList = {
+ParameterTypeList: ParameterTypeList = {
     ParameterList => ParameterTypeList::new(<>, false),
     <p:ParameterList> "," "..." => ParameterTypeList::new(<>, true)
 };
 
-pub ParameterList: ParameterList = {
+ParameterList: ParameterList = {
     <list:ParameterList> "," <dec:ParameterDeclaration> => {
         let mut list = list;
         list.push(dec);
@@ -456,12 +456,12 @@ pub ParameterList: ParameterList = {
     ParameterDeclaration => vec![<>]
 };
 
-pub ParameterDeclaration: ParameterDeclaration = {
+ParameterDeclaration: ParameterDeclaration = {
     <s:Node<DeclarationSpecifiers>> <d:Declarator> => ParameterDeclaration { declaration_specifier_list: s, declarator: ParameterDeclarator::Declarator(Box::new(d)) },
     <s: Node<DeclarationSpecifiers>> <d:AbstractDeclarator?> => ParameterDeclaration { declaration_specifier_list: s, declarator:  ParameterDeclarator::AbstractDeclarator(d.map(|v| Box::new(v))) }
 };
 
-pub AbstractDeclarator: AbstractDeclarator = {
+AbstractDeclarator: AbstractDeclarator = {
     <p:Pointer> => {
         AbstractDeclarator::Pointer(p)
     },
@@ -479,7 +479,7 @@ Pointer: Vec<Pointer> = {
     }
 };
 
-pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
+DirectAbstractDeclarator: DirectAbstractDeclarator = {
     "(" <a:AbstractDeclarator> ")" => vec![DirectAbstractDeclaratorPart::Parens(Box::new(a))],
     <v:DirectAbstractDeclarator?> "[" <expr:AssignmentExpression?> "]" => {
         let mut v = v.unwrap_or(vec![]);
@@ -499,12 +499,12 @@ pub DirectAbstractDeclarator: DirectAbstractDeclarator = {
     }
 };
 
-pub Initializer: Initializer = {
+Initializer: Initializer = {
     AssignmentExpression => Initializer::AssignmentExpression(<>),
     "{" <l:InitializerList> ","? "}" => Initializer::InitializerList(l)
 };
 
-pub InitializerList: InitializerList = {
+InitializerList: InitializerList = {
     <v:InitializerList> "," <i:InitializerListItem> => {
         let mut v = v;
         v.push(i);
@@ -513,17 +513,17 @@ pub InitializerList: InitializerList = {
     InitializerListItem => vec![]
 };
 
-pub InitializerListItem: InitializerListItem = {
+InitializerListItem: InitializerListItem = {
     <d:Designation?> <i:Initializer> => InitializerListItem { designator: d, initializer: Box::new(i) }
 };
 
-pub Designation: DesignatorList = {
+Designation: DesignatorList = {
     <d:DesignatorList> "=" => d
 };
 
-pub DesignatorList: DesignatorList = <d:Designator+> => d;
+DesignatorList: DesignatorList = <d:Designator+> => d;
 
-pub Designator: Designator = {
+Designator: Designator = {
     "[" <c:ConstantExpression> "]" => Designator::Index(c),
     "." <i:Ident> => Designator::Field(i.into())
 };
@@ -534,12 +534,12 @@ pub Designator: Designator = {
 
 pub TranslationUnit: TranslationUnit = <dec:ExternalDeclaration+> => dec;
 
-pub ExternalDeclaration: Node<ExternalDeclaration> = {
+ExternalDeclaration: Node<ExternalDeclaration> = {
     <l:@L> <f:FunctionDefinition> <r:@R> => Node::new(ExternalDeclaration::FunctionDefinition(f), l, r),
     <l:@L> <d:Declaration> <r:@R> => Node::new(ExternalDeclaration::Declaration(d), l, r)
 };
 
-pub FunctionDefinition: FunctionDefinition = {
+FunctionDefinition: FunctionDefinition = {
     <s:DeclarationSpecifiers> <d:Declarator> <l:DeclarationList?> <c:CompoundStatement> => FunctionDefinition {
         declaration_specifiers: s,
         declarator: d,
@@ -548,7 +548,7 @@ pub FunctionDefinition: FunctionDefinition = {
     }
 };
 
-pub DeclarationList: DeclarationList = <Node<Declaration>+> => <>;
+DeclarationList: DeclarationList = <Node<Declaration>+> => <>;
 
 extern { // uses a custom lexer
     type Location = ast::Location;

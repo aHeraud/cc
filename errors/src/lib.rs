@@ -19,7 +19,8 @@ pub enum CompilationError<'a> {
     InvalidTypeSpecifierCombination(InvalidTypeSpecifierCombination),
     BitFieldSizeExceedsTypeWidth(BitFieldSizeExceedsTypeWidth),
     DuplicateStructMember(DuplicateStructMember),
-    NonIntegralBitfieldType(NonIntegralBitfieldType)
+    NonIntegralBitfieldType(NonIntegralBitfieldType),
+    EnumVariantRedefinition(EnumVariantRedefinition)
 }
 
 impl<'a> Display for CompilationError<'a> {
@@ -31,7 +32,8 @@ impl<'a> Display for CompilationError<'a> {
             CompilationError::InvalidTypeSpecifierCombination(inner) => inner.fmt(f),
             CompilationError::BitFieldSizeExceedsTypeWidth(inner) => inner.fmt(f),
             CompilationError::DuplicateStructMember(inner) => inner.fmt(f),
-            CompilationError::NonIntegralBitfieldType(inner) => inner.fmt(f)
+            CompilationError::NonIntegralBitfieldType(inner) => inner.fmt(f),
+            CompilationError::EnumVariantRedefinition(inner) => inner.fmt(f)
         }
     }
 }
@@ -77,6 +79,12 @@ impl<'a> From<DuplicateStructMember> for CompilationError<'a> {
 impl<'a> From<NonIntegralBitfieldType> for CompilationError<'a> {
     fn from(error: NonIntegralBitfieldType) -> Self {
         CompilationError::NonIntegralBitfieldType(error)
+    }
+}
+
+impl<'a> From<EnumVariantRedefinition> for CompilationError<'a> {
+    fn from(error: EnumVariantRedefinition) -> Self {
+        CompilationError::EnumVariantRedefinition(error)
     }
 }
 
@@ -260,3 +268,26 @@ impl Display for NonIntegralBitfieldType {
 }
 
 impl Error for NonIntegralBitfieldType {}
+
+#[derive(Debug)]
+pub struct EnumVariantRedefinition {
+    location: (Location, Location),
+    name: String
+}
+
+impl EnumVariantRedefinition {
+    pub fn new(name: String, location: (Location, Location)) -> EnumVariantRedefinition {
+        EnumVariantRedefinition {
+            name,
+            location
+        }
+    }
+}
+
+impl Display for EnumVariantRedefinition {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}: error: redefinition of enumerator '{}'", self.location.0, self.name)
+    }
+}
+
+impl Error for EnumVariantRedefinition {}

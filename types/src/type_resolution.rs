@@ -1,7 +1,7 @@
 use ast::{DirectDeclaratorPart, Declarator, Pointer, AssignmentExpression,
           ParameterTypeList, AbstractDeclarator, ParameterDeclaration};
 use errors::CompilationError;
-use crate::types::*;
+use crate::*;
 
 enum DeclaratorPartialType {
     Pointer(Pointer),
@@ -45,7 +45,7 @@ fn resolve(initial_type: QualifiedType, identifier: Option<String>, mut stack: V
 impl ResolveDeclarator for Declarator {
     fn resolve(&self, initial_type: QualifiedType) -> (QualifiedType, Option<String>) {
         let mut identifier = None;
-        let mut stack = self.build_stack(&mut identifier);
+        let stack = self.build_stack(&mut identifier);
         resolve(initial_type, identifier, stack)
     }
 }

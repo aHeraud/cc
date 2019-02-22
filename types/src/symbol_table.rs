@@ -35,7 +35,7 @@ impl SymbolTable {
         None
     }
 
-    pub fn insert_typedef(&mut self, name: &String, value: Type, location: Location) -> Result<(), TypedefRedefinitionError> {
+    pub fn insert_typedef(&mut self, name: &String, value: QualifiedType, location: Location) -> Result<(), TypedefRedefinitionError> {
         unimplemented!()
     }
 
@@ -72,7 +72,7 @@ impl SymbolTable {
 pub struct ScopeLevel {
     scope_type: ScopeType,
     ordinary_identifiers: HashMap<String, (OrdinaryIdentifier, Location)>, // variables, functions, and typedefs share the same namespace
-    tags: HashMap<String, ()>, //TODO
+    tags: HashMap<String, Tag>,
     labels: HashMap<String, ()>, //TODO
     structs: HashMap<StructID,Struct>,
     unions: HashMap<UnionID, Union>,
@@ -105,16 +105,17 @@ pub enum ScopeType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StructEnumUnion {
-    Struct,
-    Enum,
-    Union
+pub enum Tag {
+    Struct(StructID),
+    Enum(EnumID),
+    Union(UnionID)
 }
 
 /// Variable identifiers, functions, and typedefs share a namespace
 #[derive(Debug)]
 pub enum OrdinaryIdentifier {
-    Variable(Type),
+    Variable(QualifiedType, StorageClass),
+    EnumVariant(i32),
     Function(Option<Vec<Type>>, Type),
-    Typedef(Type)
+    Typedef(QualifiedType)
 }
