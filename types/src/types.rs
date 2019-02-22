@@ -228,10 +228,10 @@ impl Display for Type {
             Enum(_) => write!(f, "enum"), // TODO: how should this be displayed?
             Function { parameters, variadic, returns }  => {
                 if *variadic {
-                    write!(f, "fn({}, ...) -> {}", DisplayVec(&parameters), returns)
+                    write!(f, "variadic function taking ({}, ...) and returning {}", DisplayVec(&parameters), returns)
                 }
                 else {
-                    write!(f, "fn({}) -> {}", DisplayVec(&parameters), returns)
+                    write!(f, "function taking ({}) and returning {}", DisplayVec(&parameters), returns)
                 }
             },
             Array { inner, size } => write!(f, "array of {}", inner), // TODO: implement display for size
